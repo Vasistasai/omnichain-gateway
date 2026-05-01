@@ -522,7 +522,15 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
 
   try {
     let txHash;
-    if (isExternal && window.ethereum) {
+    if (isExternal) {
+      if (!window.ethereum) {
+        statusBox.className = 'status-box error mt-2';
+        statusBox.textContent = '❌ Web3 Extension (MetaMask) is not installed. You can track this wallet, but cannot send from it without the extension.';
+        document.getElementById('sendSpinner').classList.add('hidden');
+        document.getElementById('sendText').textContent = 'Sign & Broadcast';
+        btn.disabled = false;
+        return;
+      }
       // Send raw request to extension
       txHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
@@ -533,6 +541,7 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
         }]
       });
     } else {
+      if (!signer) throw new Error("Internal signer not initialized.");
       // Internal wallet sign
       const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
       txHash = tx.hash;
