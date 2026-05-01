@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block title %}User Management – Admin{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center">
+  <div>
+    <div class="page-title">👥 User Management</div>
+    <div class="page-subtitle">All registered accounts, wallets, and transaction activity.</div>
+  </div>
+  <span class="badge badge-network" style="font-size:0.85rem; padding:0.5rem 1rem;">{{ users|length }} Users</span>
+</div>
+
+<div class="glass-card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>IP Address</th>
+          <th>ETH Wallet</th>
+          <th>External Wallet</th>
+          <th>Transactions</th>
+          <th>Total ETH</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td style="color:var(--text-muted);">{{ u.id }}</td>
+          <td style="color:var(--neon); font-weight:600;">{{ u.real_name }}</td>
+          <td style="font-family:monospace; color:#fff;">{{ u.username }}</td>
+          <td>
+            <span class="badge {% if u.role == 'Admin' %}badge-high{% else %}badge-low{% endif %}">
+              {{ u.role }}
+            </span>
+          </td>
+          <td style="font-family:monospace; color:var(--danger); font-size:0.8rem;">{{ u.ip_address or '—' }}</td>
+          <td>
+            {% if u.wallet_address %}
+            <div class="hash-cell">
+              <span>{{ u.wallet_address[:10] }}...{{ u.wallet_address[-6:] }}</span>
+              <button class="copy-btn" onclick="copyToClipboard('{{ u.wallet_address }}', this)">⎘</button>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if u.external_wallet %}
+            <div class="hash-cell">
+              <span style="color:var(--accent);">{{ u.external_wallet[:10] }}...{{ u.external_wallet[-6:] }}</span>
+              <button class="copy-btn" onclick="copyToClipboard('{{ u.external_wallet }}', this)">⎘</button>
+            </div>
+            {% else %}<span style="color:var(--text-muted); font-size:0.75rem;">None</span>{% endif %}
+          </td>
+          <td style="text-align:center;">
+            <span class="badge badge-network">{{ u.txn_count }}</span>
+          </td>
+          <td style="color:var(--success); font-weight:700; font-family:monospace;">
+            {{ "%.4f"|format(u.total_eth) }} ETH
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not users %}
+        <tr>
+          <td colspan="9" class="text-center text-muted" style="padding:3rem;">No users found.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

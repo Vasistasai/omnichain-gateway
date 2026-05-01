@@ -405,5 +405,19 @@ def export_csv():
     return Response(output.getvalue(), mimetype='text/csv',
                     headers={"Content-Disposition": "attachment; filename=transactions.csv"})
 
+@app.route('/admin/users')
+def admin_users():
+    if session.get('role') != 'Admin':
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    users = conn.execute('''SELECT u.id, u.real_name, u.username, u.role, u.ip_address,
+                            u.wallet_address, u.external_wallet,
+                            COUNT(t.id) as txn_count,
+                            COALESCE(SUM(t.amount_eth), 0) as total_eth
+                            FROM users u LEFT JOIN transactions t ON u.id = t.user_id
+                            GROUP BY u.id ORDER BY u.id''').fetchall()
+    conn.close()
+    return render_template('admin_users.html', users=users)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
