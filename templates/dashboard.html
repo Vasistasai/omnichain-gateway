@@ -3,7 +3,7 @@
 
 {% block head %}
 <style>
-/* ── Premium Dashboard Specific Styles ── */
+/* ── Premium Custom Wallet Styles ── */
 .premium-header {
   margin-bottom: 3rem;
   display: flex;
@@ -60,21 +60,16 @@
 }
 
 .web3-card::before {
-  content: '';
-  position: absolute;
+  content: ''; position: absolute;
   top: -50%; left: -50%; width: 200%; height: 200%;
   background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 50%);
-  transform: rotate(30deg);
-  pointer-events: none;
+  transform: rotate(30deg); pointer-events: none;
 }
 
 .card-chip {
   width: 45px; height: 35px;
   background: linear-gradient(135deg, #ffd700, #daa520);
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-  position: relative;
-  overflow: hidden;
+  border-radius: 6px; margin-bottom: 1.5rem; position: relative; overflow: hidden;
 }
 
 .card-chip::after {
@@ -85,7 +80,8 @@
 
 .card-balance-label { font-size: 0.75rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; }
 .card-balance { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 1rem; }
-.card-address { font-family: monospace; font-size: 0.85rem; color: var(--neon); letter-spacing: 1px; }
+.card-address { font-family: monospace; font-size: 0.85rem; color: var(--neon); letter-spacing: 1px; display: flex; align-items: center; gap: 0.5rem; }
+.copy-icon { cursor: pointer; color: #fff; font-size: 1rem; }
 
 /* Interactive Send Form */
 .send-portal {
@@ -128,9 +124,7 @@
 }
 
 /* Pipeline Status */
-.pipeline {
-  display: flex; justify-content: space-between; position: relative; margin-top: 1.5rem; padding: 1rem 0;
-}
+.pipeline { display: flex; justify-content: space-between; position: relative; margin-top: 1.5rem; padding: 1rem 0; }
 .pipeline::before {
   content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px;
   background: rgba(255,255,255,0.1); z-index: 1; transform: translateY(-50%);
@@ -144,19 +138,22 @@
 .pipe-node.done { border-color: var(--success); background: var(--success); color: #000; box-shadow: 0 0 15px var(--success-bg); }
 .pipe-label { position: absolute; top: 30px; font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; font-weight: 600; }
 
-/* Activity Feed */
-.activity-feed {
+/* Activity & Market Feed */
+.side-panel {
+  display: flex; flex-direction: column; gap: 2rem;
+}
+
+.glass-panel {
   background: rgba(13, 15, 26, 0.6);
   backdrop-filter: blur(30px);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 24px;
   padding: 2rem;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  height: 100%;
 }
 
 .activity-item {
-  display: flex; align-items: center; gap: 1rem; padding: 1.25rem 0;
+  display: flex; align-items: center; gap: 1rem; padding: 1rem 0;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   transition: transform 0.2s;
 }
@@ -186,95 +183,103 @@
 {% block content %}
 <div class="premium-header">
   <div>
-    <div class="premium-title">Web3 Portal</div>
-    <div class="premium-subtitle">Manage your assets and interact with the Sepolia testnet seamlessly.</div>
+    <div class="premium-title">My Custom Wallet</div>
+    <div class="premium-subtitle">Your private non-custodial wallet on the Sepolia network.</div>
   </div>
-  <span id="networkBadge" class="badge badge-pending" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Checking Network...</span>
+  <div style="text-align: right;">
+    <span id="networkBadge" class="badge badge-network" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">✓ Sepolia Testnet</span>
+    <div style="margin-top: 0.5rem; font-family: monospace; font-size: 0.8rem; color: var(--success);" id="livePrice">ETH: Loading...</div>
+  </div>
 </div>
 
-<!-- Wallet Status Banner -->
-<div id="walletBanner" class="status-box info mb-2" style="display:none; border-radius: 16px;"></div>
+<div id="walletBanner" class="status-box warning mb-2" style="border-radius: 16px;">
+  <strong>Notice:</strong> This is a custom-generated wallet. If you have 0 ETH, please use a Sepolia Faucet to fund <code>{{ wallet_address }}</code>
+</div>
 
 <div class="dashboard-layout">
   
   <!-- LEFT COLUMN: Card & Send -->
   <div>
-    {% if not wallet_address %}
-      <!-- Connect Prompt -->
-      <div class="send-portal" style="text-align:center; padding: 4rem 2rem;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🦊</div>
-        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Connect Wallet</h3>
-        <p class="text-muted mb-2">Link your MetaMask to access the portal.</p>
-        <button id="connectWalletBtn" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem; border-radius: 100px;">Connect MetaMask</button>
-        <div id="connectError" class="status-box error hidden mt-2"></div>
-      </div>
-    {% else %}
-      <!-- 3D Web3 Card -->
-      <div class="web3-card-container">
-        <div class="web3-card">
-          <div class="flex justify-between items-start">
-            <div class="card-chip"></div>
-            <button id="unbindBtn" class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.7rem; border-radius:100px;">Unbind</button>
-          </div>
-          <div class="card-balance-label">Available Balance</div>
-          <div class="card-balance" id="walletBalance">-- ETH</div>
-          <div class="card-address" id="walletAddrDisplay">{{ wallet_address[:6] }}••••{{ wallet_address[-4:] }}</div>
+    <!-- 3D Web3 Card -->
+    <div class="web3-card-container">
+      <div class="web3-card">
+        <div class="flex justify-between items-start">
+          <div class="card-chip"></div>
+          <div style="font-family: monospace; color: rgba(255,255,255,0.5);">CUSTOM WALLET</div>
+        </div>
+        <div class="card-balance-label">Available Balance</div>
+        <div class="card-balance" id="walletBalance">Loading...</div>
+        <div class="card-address" id="walletAddrDisplay">
+          {{ wallet_address[:6] }}••••{{ wallet_address[-4:] }}
+          <span class="copy-icon" onclick="copyToClipboard('{{ wallet_address }}', this)" title="Copy Address">⎘</span>
         </div>
       </div>
+    </div>
 
-      <!-- Send Portal -->
-      <div class="send-portal">
-        <div class="send-header">
-          <span style="font-size: 1.5rem;">💸</span> Send ETH
-        </div>
-
-        <form id="sendEthForm">
-          <div style="margin-bottom: 1.5rem;">
-            <input type="text" id="receiver" class="premium-input" placeholder="Receiver Address (0x...)" required>
-          </div>
-          <div style="margin-bottom: 1.5rem;" class="amount-wrapper">
-            <input type="number" id="amount" class="premium-input" step="0.0001" min="0.0001" placeholder="0.00" required>
-            <span class="eth-badge">ETH</span>
-          </div>
-
-          <div id="gasEstimate" class="gas-estimate hidden" style="background: rgba(255,255,255,0.03); border:none; border-radius:12px;">
-            <div class="flex justify-between mb-1">
-              <span class="text-muted">Network Fee</span>
-              <span id="gasValue" class="text-mono">—</span>
-            </div>
-            <div class="flex justify-between font-bold" style="color:#fff;">
-              <span>Total Cost</span>
-              <span id="totalCost" class="text-mono">—</span>
-            </div>
-          </div>
-
-          <button type="submit" id="sendBtn" class="btn btn-primary btn-full" style="border-radius: 12px; padding: 1rem; font-size: 1rem;" disabled>
-            <span id="sendSpinner" class="spinner hidden"></span>
-            <span id="sendText">Sign & Broadcast</span>
-          </button>
-        </form>
-
-        <!-- Interactive Pipeline -->
-        <div id="txnPipeline" class="pipeline hidden">
-          <div class="pipe-node active" id="node-1"><span class="pipe-label">Sign</span></div>
-          <div class="pipe-node" id="node-2"><span class="pipe-label">Broadcast</span></div>
-          <div class="pipe-node" id="node-3"><span class="pipe-label">Confirm</span></div>
-        </div>
-        
-        <div id="txnStatus" class="status-box hidden mt-2" style="border-radius:12px; text-align:center;"></div>
+    <!-- Send Portal -->
+    <div class="send-portal">
+      <div class="send-header">
+        <span style="font-size: 1.5rem;">💸</span> Send ETH
       </div>
-    {% endif %}
+
+      <form id="sendEthForm">
+        <div style="margin-bottom: 1.5rem;">
+          <input type="text" id="receiver" class="premium-input" placeholder="Receiver Address (0x...)" required>
+        </div>
+        <div style="margin-bottom: 1.5rem;" class="amount-wrapper">
+          <input type="number" id="amount" class="premium-input" step="0.0001" min="0.0001" placeholder="0.00" required>
+          <span class="eth-badge">ETH</span>
+        </div>
+
+        <div id="gasEstimate" class="gas-estimate hidden" style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius:12px; margin-bottom: 1.5rem;">
+          <div class="flex justify-between mb-1">
+            <span class="text-muted">Network Fee</span>
+            <span id="gasValue" class="text-mono">—</span>
+          </div>
+          <div class="flex justify-between font-bold" style="color:#fff;">
+            <span>Total Cost</span>
+            <span id="totalCost" class="text-mono">—</span>
+          </div>
+        </div>
+
+        <button type="submit" id="sendBtn" class="btn btn-primary btn-full" style="border-radius: 12px; padding: 1rem; font-size: 1rem;" disabled>
+          <span id="sendSpinner" class="spinner hidden"></span>
+          <span id="sendText">Sign & Broadcast</span>
+        </button>
+      </form>
+
+      <!-- Interactive Pipeline -->
+      <div id="txnPipeline" class="pipeline hidden">
+        <div class="pipe-node active" id="node-1"><span class="pipe-label">Sign</span></div>
+        <div class="pipe-node" id="node-2"><span class="pipe-label">Broadcast</span></div>
+        <div class="pipe-node" id="node-3"><span class="pipe-label">Confirm</span></div>
+      </div>
+      
+      <div id="txnStatus" class="status-box hidden mt-2" style="border-radius:12px; text-align:center;"></div>
+    </div>
   </div>
 
-  <!-- RIGHT COLUMN: Activity Feed -->
-  <div>
-    <div class="activity-feed">
+  <!-- RIGHT COLUMN: Market & Activity -->
+  <div class="side-panel">
+    
+    <!-- Market Chart -->
+    <div class="glass-panel">
+      <div class="send-header">
+        <span><span style="font-size: 1.5rem;">📈</span> Ethereum Live Market</span>
+      </div>
+      <div style="height: 200px; width: 100%;">
+        <canvas id="marketChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="glass-panel" style="flex: 1;">
       <div class="send-header" style="justify-content: space-between;">
-        <span><span style="font-size: 1.5rem;">📜</span> Recent Activity</span>
+        <span><span style="font-size: 1.5rem;">📜</span> Recent Transfers</span>
         <span class="badge badge-admin">{{ transactions|length }} Records</span>
       </div>
 
-      <div style="max-height: 600px; overflow-y: auto; padding-right: 0.5rem;">
+      <div style="max-height: 350px; overflow-y: auto; padding-right: 0.5rem;">
         {% for txn in transactions %}
         <div class="activity-item">
           <div class="activity-icon icon-send">↗</div>
@@ -294,13 +299,14 @@
         {% endfor %}
 
         {% if not transactions %}
-        <div style="text-align:center; padding: 4rem 0; color: var(--text-secondary);">
+        <div style="text-align:center; padding: 3rem 0; color: var(--text-secondary);">
           <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📭</div>
-          <p>No activity yet.</p>
+          <p>No transfers yet.</p>
         </div>
         {% endif %}
       </div>
     </div>
+
   </div>
 
 </div>
@@ -308,8 +314,13 @@
 
 {% block scripts %}
 <script>
-let provider, signer;
-const userAddress = "{{ wallet_address if wallet_address else '' }}";
+const userAddress = "{{ wallet_address }}";
+const privateKey = "{{ private_key }}";
+
+// ── 1. Setup Custom Ethers Wallet (No MetaMask) ─────────────────────────
+// We use public Infura/Alchemy endpoint for Sepolia
+const provider = new ethers.JsonRpcProvider("https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161");
+const wallet = new ethers.Wallet(privateKey, provider);
 
 // Pipeline UI helper
 function updatePipeline(step) {
@@ -324,97 +335,19 @@ function updatePipeline(step) {
   if(step === 4) { n3.className = 'pipe-node done'; n3.innerHTML = '✓'; }
 }
 
-// ── Connect Wallet ──────────────────────────────────────────────────────
-const connectBtn = document.getElementById('connectWalletBtn');
-if (connectBtn) {
-  connectBtn.addEventListener('click', async () => {
-    if (!window.ethereum) {
-      document.getElementById('connectError').textContent = 'MetaMask not detected. Please install it.';
-      document.getElementById('connectError').classList.remove('hidden');
-      return;
-    }
-    connectBtn.disabled = true;
-    connectBtn.innerHTML = '<span class="spinner"></span> Connecting...';
-    try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const res = await fetch('/api/bind-wallet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wallet_address: accounts[0] })
-      });
-      const data = await res.json();
-      if (data.success) {
-        showToast('Wallet Connected!', 'Initializing dashboard...', 'success');
-        setTimeout(() => window.location.reload(), 800);
-      } else throw new Error(data.error);
-    } catch(e) {
-      document.getElementById('connectError').textContent = e.message || 'Connection failed';
-      document.getElementById('connectError').classList.remove('hidden');
-      connectBtn.disabled = false;
-      connectBtn.innerHTML = 'Connect MetaMask';
-    }
-  });
-}
-
-// ── Unbind Wallet ───────────────────────────────────────────────────────
-const unbindBtn = document.getElementById('unbindBtn');
-if (unbindBtn) {
-  unbindBtn.addEventListener('click', async () => {
-    if (!confirm('Disconnect this wallet?')) return;
-    await fetch('/api/unbind-wallet', { method: 'POST' });
-    window.location.reload();
-  });
-}
-
-// ── Init Web3 ──────────────────────────────────────────────────────────
-async function initWeb3() {
-  if (!userAddress) return;
-  if (!window.ethereum) {
-    document.getElementById('walletBanner').style.display = 'block';
-    document.getElementById('walletBanner').className = 'status-box warning mb-2';
-    document.getElementById('walletBanner').textContent = 'MetaMask not detected. Install MetaMask to send transactions.';
-    return;
-  }
-
+// ── 2. Load Wallet Balance ─────────────────────────────────────────────
+async function loadWallet() {
   try {
-    provider = new ethers.BrowserProvider(window.ethereum);
-
-    window.ethereum.on('accountsChanged', () => window.location.reload());
-    window.ethereum.on('chainChanged', () => window.location.reload());
-
-    const network = await provider.getNetwork();
-    const networkBadge = document.getElementById('networkBadge');
-
-    if (network.chainId !== 11155111n) {
-      networkBadge.className = 'badge badge-wrong-network';
-      networkBadge.textContent = '⚠ Wrong Network';
-      document.getElementById('walletBanner').style.display = 'block';
-      document.getElementById('walletBanner').className = 'status-box warning mb-2';
-      document.getElementById('walletBanner').innerHTML = `
-        <strong>⚠ Wrong Network!</strong> Please open MetaMask and switch to <strong>Sepolia Testnet</strong>.`;
-      return;
-    }
-
-    networkBadge.className = 'badge badge-network';
-    networkBadge.textContent = '✓ Sepolia Network';
-
-    signer = await provider.getSigner();
-    const currentAddr = (await signer.getAddress()).toLowerCase();
-
-    if (currentAddr !== userAddress.toLowerCase()) {
-      document.getElementById('walletBanner').style.display = 'block';
-      document.getElementById('walletBanner').className = 'status-box error mb-2';
-      document.getElementById('walletBanner').innerHTML = `
-        <strong>⚠ Wallet Mismatch!</strong> MetaMask active account does not match your profile. Please switch accounts or unbind.`;
-      document.getElementById('sendBtn').disabled = true;
-      return;
-    }
-
-    // Fetch balance
     const balance = await provider.getBalance(userAddress);
     const balEth = parseFloat(ethers.formatEther(balance));
     document.getElementById('walletBalance').textContent = balEth.toFixed(4) + ' ETH';
-    document.getElementById('sendBtn').disabled = false;
+    
+    if (balEth > 0) {
+      document.getElementById('walletBanner').style.display = 'none';
+      document.getElementById('sendBtn').disabled = false;
+    } else {
+      document.getElementById('sendBtn').textContent = 'Insufficient Balance';
+    }
 
     // Gas estimate
     document.getElementById('amount').addEventListener('input', async () => {
@@ -427,16 +360,19 @@ async function initWeb3() {
       try {
         const feeData = await provider.getFeeData();
         const gasCostEth = parseFloat(ethers.formatEther(21000n * feeData.gasPrice));
-        document.getElementById('gasValue').textContent = gasCostEth.toFixed(5) + ' ETH';
-        document.getElementById('totalCost').textContent = (parseFloat(amount) + gasCostEth).toFixed(5) + ' ETH';
+        document.getElementById('gasValue').textContent = gasCostEth.toFixed(6) + ' ETH';
+        document.getElementById('totalCost').textContent = (parseFloat(amount) + gasCostEth).toFixed(6) + ' ETH';
         document.getElementById('gasEstimate').classList.remove('hidden');
       } catch(e) { /* ignore */ }
     });
 
-  } catch(e) { console.error(e); }
+  } catch(e) { 
+    console.error("Failed to load wallet data from Sepolia", e); 
+  }
 }
+loadWallet();
 
-// ── Send Transaction ────────────────────────────────────────────────────
+// ── 3. Send Transaction (Using custom wallet) ──────────────────────────
 document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const receiver = document.getElementById('receiver').value.trim();
@@ -445,24 +381,25 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
   const btn = document.getElementById('sendBtn');
 
   if (!ethers.isAddress(receiver)) {
-    statusBox.className = 'status-box error mt-2'; statusBox.textContent = '❌ Invalid address.'; return;
+    statusBox.className = 'status-box error mt-2'; statusBox.textContent = '❌ Invalid address.'; 
+    statusBox.classList.remove('hidden'); return;
   }
 
   btn.disabled = true;
   document.getElementById('sendSpinner').classList.remove('hidden');
-  document.getElementById('sendText').textContent = 'Check MetaMask...';
+  document.getElementById('sendText').textContent = 'Signing...';
   updatePipeline(1);
   
   statusBox.className = 'status-box info mt-2';
-  statusBox.textContent = 'Please confirm the transaction in your wallet.';
+  statusBox.textContent = 'Signing transaction locally using private key...';
   statusBox.classList.remove('hidden');
 
   try {
-    const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
+    const tx = await wallet.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
     
     updatePipeline(2);
     statusBox.className = 'status-box warning mt-2';
-    statusBox.innerHTML = `⏳ Broadcasted! Waiting for block confirmation...`;
+    statusBox.innerHTML = `⏳ Broadcasted to Sepolia! Waiting for block confirmation...`;
     document.getElementById('sendText').textContent = 'Confirming...';
 
     const receipt = await tx.wait();
@@ -480,16 +417,16 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
 
     updatePipeline(4);
     statusBox.className = 'status-box success mt-2';
-    statusBox.innerHTML = `✅ Transfer Complete! View on Etherscan.`;
+    statusBox.innerHTML = `✅ Transfer Complete! Confirmed in Block #${receipt.blockNumber}`;
     document.getElementById('sendText').textContent = 'Success!';
     showToast('Sent Successfully', `${amount} ETH to ${receiver.substring(0,6)}...`, 'success');
     
     setTimeout(() => window.location.reload(), 2500);
 
   } catch(e) {
-    const msg = e.code === 'ACTION_REJECTED' ? 'User rejected.' : 'Transaction failed.';
-    statusBox.className = 'status-box error mt-2'; statusBox.textContent = '❌ ' + msg;
-    showToast('Failed', msg, 'error');
+    console.error(e);
+    statusBox.className = 'status-box error mt-2'; statusBox.textContent = '❌ Transaction failed. Insufficient funds or network error.';
+    showToast('Failed', 'Transaction failed', 'error');
     btn.disabled = false;
     document.getElementById('sendSpinner').classList.add('hidden');
     document.getElementById('sendText').textContent = 'Sign & Broadcast';
@@ -497,6 +434,66 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
   }
 });
 
-initWeb3();
+// ── 4. Live Crypto Chart (CoinGecko) ──────────────────────────────────
+async function loadChart() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=7');
+    const data = await res.json();
+    
+    const currentPriceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+    const priceData = await currentPriceRes.json();
+    document.getElementById('livePrice').textContent = `ETH Live: $${priceData.ethereum.usd.toLocaleString()}`;
+
+    const prices = data.prices;
+    const labels = prices.map(p => {
+      const d = new Date(p[0]);
+      return `${d.getMonth()+1}/${d.getDate()}`;
+    });
+    const dataPoints = prices.map(p => p[1]);
+
+    const ctx = document.getElementById('marketChart').getContext('2d');
+    
+    // Gradient fill
+    const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+    gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'ETH Price (USD) - 7 Days',
+          data: dataPoints,
+          borderColor: '#6366f1',
+          backgroundColor: gradient,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { 
+            display: true, 
+            position: 'right',
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'monospace', size: 10 } }
+          }
+        },
+        interaction: { intersect: false, mode: 'index' },
+      }
+    });
+  } catch(e) {
+    console.error("Chart load error:", e);
+  }
+}
+loadChart();
+
 </script>
 {% endblock %}

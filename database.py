@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from eth_account import Account
 
 DB_NAME = 'real_crypto.db'
 
@@ -19,6 +20,7 @@ def init_db():
             password TEXT NOT NULL,
             real_name TEXT NOT NULL,
             wallet_address TEXT,
+            private_key TEXT,
             ip_address TEXT,
             role TEXT NOT NULL DEFAULT 'User'
         )
@@ -45,10 +47,14 @@ def init_db():
 
     c.execute('SELECT COUNT(*) FROM users')
     if c.fetchone()[0] == 0:
-        c.execute('INSERT INTO users (username, password, real_name, ip_address, role) VALUES (?, ?, ?, ?, ?)',
-                 ('admin', 'admin123', 'Super Admin', '127.0.0.1', 'Admin'))
-        c.execute('INSERT INTO users (username, password, real_name, ip_address, role) VALUES (?, ?, ?, ?, ?)',
-                 ('public', 'public123', 'John Doe', '127.0.0.1', 'User'))
+        # Generate built-in wallets for the demo users
+        admin_acct = Account.create()
+        public_acct = Account.create()
+
+        c.execute('INSERT INTO users (username, password, real_name, wallet_address, private_key, ip_address, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                 ('admin', 'admin123', 'Super Admin', admin_acct.address, admin_acct.key.hex(), '127.0.0.1', 'Admin'))
+        c.execute('INSERT INTO users (username, password, real_name, wallet_address, private_key, ip_address, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                 ('public', 'public123', 'John Doe', public_acct.address, public_acct.key.hex(), '127.0.0.1', 'User'))
 
     conn.commit()
     conn.close()
@@ -57,4 +63,4 @@ if __name__ == '__main__':
     if os.path.exists(DB_NAME):
         os.remove(DB_NAME)
     init_db()
-    print("Database initialized successfully.")
+    print("Database initialized successfully with built-in wallets.")

@@ -64,36 +64,14 @@ def auth():
         session['username'] = user['username']
         session['role'] = user['role']
         session['wallet_address'] = user['wallet_address']
+        session['private_key'] = user['private_key']
         conn.close()
         return jsonify({"redirect": url_for('admin_dashboard') if user['role'] == 'Admin' else url_for('user_dashboard')})
 
     conn.close()
     return jsonify({"error": "Invalid credentials. Try admin/admin123 or public/public123"}), 401
 
-@app.route('/api/bind-wallet', methods=['POST'])
-def bind_wallet():
-    if 'user_id' not in session or session.get('role') == 'Admin':
-        return jsonify({"error": "Unauthorized"}), 403
-    wallet_address = request.json.get('wallet_address', '').lower()
-    if not wallet_address:
-        return jsonify({"error": "Wallet address required"}), 400
-    conn = get_db_connection()
-    conn.execute('UPDATE users SET wallet_address = ? WHERE id = ?', (wallet_address, session['user_id']))
-    conn.commit()
-    conn.close()
-    session['wallet_address'] = wallet_address
-    return jsonify({"success": True})
-
-@app.route('/api/unbind-wallet', methods=['POST'])
-def unbind_wallet():
-    if 'user_id' not in session or session.get('role') == 'Admin':
-        return jsonify({"error": "Unauthorized"}), 403
-    conn = get_db_connection()
-    conn.execute('UPDATE users SET wallet_address = NULL WHERE id = ?', (session['user_id'],))
-    conn.commit()
-    conn.close()
-    session.pop('wallet_address', None)
-    return jsonify({"success": True})
+# Old bind/unbind routes removed for custom wallet
 
 @app.route('/logout')
 def logout():
@@ -109,7 +87,7 @@ def user_dashboard():
     user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     txns = conn.execute('SELECT * FROM transactions WHERE user_id = ? ORDER BY id DESC', (session['user_id'],)).fetchall()
     conn.close()
-    return render_template('dashboard.html', wallet_address=user['wallet_address'], transactions=txns)
+    return render_template('dashboard.html', wallet_address=user['wallet_address'], private_key=user['private_key'], transactions=txns)
 
 @app.route('/api/sync-tx', methods=['POST'])
 def sync_tx():
