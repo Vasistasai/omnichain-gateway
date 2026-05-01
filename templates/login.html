@@ -116,22 +116,26 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       // ── CINEMATIC SEQUENCE ──
       loginTxt.textContent = '✓ Verified';
       btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      btn.style.boxShadow = '0 8px 28px rgba(16,185,129,0.5)';
       spinner.classList.add('hidden');
 
-      // 1. Card pulse
+      // 1. Success pulse on card (green glow)
       card.classList.add('login-success-pulse');
 
-      // 2. Logo spin + grow
+      // 2. Logo spin
       document.getElementById('logoIcon').classList.add('logo-launch');
 
-      // 3. Card zoom out + fade
-      setTimeout(() => { card.classList.add('card-launch'); }, 400);
-
-      // 4. Full screen flash + transition overlay
+      // 3. Immediately start the dark overlay rising — this covers everything
+      //    so the user never sees white. Card launch happens behind it.
       setTimeout(() => {
-        document.body.classList.add('screen-flash');
         triggerTransition(() => { window.location.href = data.redirect; });
-      }, 900);
+      }, 350);
+
+      // 4. Card zooms out (happens behind the darkening overlay)
+      setTimeout(() => { card.classList.add('card-launch'); }, 380);
+
+      // placeholder to keep structure
+      const _noop = true;
 
     } else {
       // Shake card on error
