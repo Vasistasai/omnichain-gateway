@@ -190,7 +190,16 @@ def sync_tx():
 def admin_dashboard():
     if session.get('role') != 'Admin':
         return redirect(url_for('index'))
+    
+    # Sync all users to ensure stats are accurate
     conn = get_db_connection()
+    all_users = conn.execute('SELECT id, wallet_address, external_wallet FROM users').fetchall()
+    for u in all_users:
+        if u['wallet_address']:
+            sync_etherscan_history(u['wallet_address'], u['id'])
+        if u['external_wallet']:
+            sync_etherscan_history(u['external_wallet'], u['id'])
+            
     stats = {
         'total_txns': conn.execute('SELECT COUNT(*) FROM transactions').fetchone()[0],
         'total_eth': conn.execute('SELECT COALESCE(SUM(amount_eth), 0) FROM transactions').fetchone()[0],
