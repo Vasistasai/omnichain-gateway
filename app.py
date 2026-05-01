@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
 import os, csv, io, json, requests
 from database import init_db, get_db_connection
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "omnichain_web3_secret_2024"
@@ -194,10 +197,8 @@ def forgot_password():
             print("Failed to send email:", e)
             return jsonify({"error": "Failed to send email. Check SMTP credentials."}), 500
     else:
-        # Fallback if no credentials are provided in .env
         print(f"\n[MOCK EMAIL SERVER - NO CREDENTIALS CONFIGURED] To: {email} | OTP: {otp}\n")
-        
-    return jsonify({"success": True, "message": "OTP sent to email", "demo_otp": otp})
+    return jsonify({"success": True, "message": "OTP sent to email"})
 
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():
