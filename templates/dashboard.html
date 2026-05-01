@@ -443,6 +443,7 @@ function updateUIForAsset() {
   
   // Reload Chart
   loadChart(assetObj);
+  calculateNetworkFee(); // Recalculate fees for new asset
 }
 const userAddress = isExternal ? externalAddress : internalAddress;
 
@@ -531,28 +532,54 @@ async function loadWallet() {
     } else {
       document.getElementById('sendBtn').textContent = 'Insufficient Balance';
     }
-
-    // Gas estimate
-    document.getElementById('amount').addEventListener('input', async () => {
-      const amount = document.getElementById('amount').value;
-      const receiver = document.getElementById('receiver').value;
-      if (!amount || !receiver || !ethers.isAddress(receiver)) {
-        document.getElementById('gasEstimate').classList.add('hidden');
-        return;
-      }
-      try {
-        const feeData = await publicProvider.getFeeData();
-        const gasCostEth = parseFloat(ethers.formatEther(21000n * feeData.gasPrice));
-        document.getElementById('gasValue').textContent = gasCostEth.toFixed(6) + ' ETH';
-        document.getElementById('totalCost').textContent = (parseFloat(amount) + gasCostEth).toFixed(6) + ' ETH';
-        document.getElementById('gasEstimate').classList.remove('hidden');
-      } catch(e) { /* ignore */ }
-    });
-
   } catch(e) { 
     console.error("Failed to load wallet data from Sepolia", e); 
   }
 }
+
+// ── OmniChain Network Fee Simulator ────────────────────────────────────
+async function calculateNetworkFee() {
+  const amountStr = document.getElementById('amount').value;
+  const receiver = document.getElementById('receiver').value;
+  const estimateBox = document.getElementById('gasEstimate');
+  const gasValue = document.getElementById('gasValue');
+  const totalCost = document.getElementById('totalCost');
+
+  if (!amountStr || !receiver) {
+    estimateBox.classList.add('hidden');
+    return;
+  }
+
+  const amount = parseFloat(amountStr);
+  if (isNaN(amount) || amount <= 0) return;
+
+  if (currentAsset === 'ETH') {
+    if (!ethers.isAddress(receiver)) {
+      estimateBox.classList.add('hidden');
+      return;
+    }
+    try {
+      const feeData = await publicProvider.getFeeData();
+      const gasCostEth = parseFloat(ethers.formatEther(21000n * feeData.gasPrice));
+      gasValue.textContent = gasCostEth.toFixed(6) + ' ETH';
+      totalCost.textContent = (amount + gasCostEth).toFixed(6) + ' ETH';
+      estimateBox.classList.remove('hidden');
+    } catch(e) { console.error(e); }
+  } else {
+    // Simulate network fees for other chains
+    let mockFee = 0;
+    if (currentAsset === 'BTC') mockFee = 0.00005;
+    if (currentAsset === 'SOL') mockFee = 0.000005;
+    if (currentAsset === 'USDT') mockFee = 1.50; // $1.50 TRC20/ERC20 sim fee
+    
+    gasValue.textContent = mockFee + ' ' + currentAsset;
+    totalCost.textContent = (amount + mockFee).toFixed(6) + ' ' + currentAsset;
+    estimateBox.classList.remove('hidden');
+  }
+}
+
+document.getElementById('amount').addEventListener('input', calculateNetworkFee);
+document.getElementById('receiver').addEventListener('input', calculateNetworkFee);
 
 // Set up signer before loading wallet
 let signer = null;
