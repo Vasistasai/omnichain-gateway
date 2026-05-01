@@ -152,7 +152,7 @@ def logout():
 
 # ─── User Routes ─────────────────────────────────────────────────────────────
 @app.route('/dashboard')
-def dashboard():
+def user_dashboard():
     if 'user_id' not in session:
         return redirect(url_for('index'))
     if session.get('role') == 'Admin':
