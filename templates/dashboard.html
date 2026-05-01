@@ -341,11 +341,11 @@
 
 {% block scripts %}
 <script>
-const internalAddress = "{{ wallet_address }}";
-const externalAddress = "{{ external_wallet if external_wallet else '' }}";
-const privateKey = "{{ private_key }}";
+const internalAddress = "{{ wallet_address if wallet_address and wallet_address != 'None' else '' }}";
+const externalAddress = "{{ external_wallet if external_wallet and external_wallet != 'None' else '' }}";
+const privateKey = "{{ private_key if private_key and private_key != 'None' else '' }}";
 
-const isExternal = !!externalAddress;
+const isExternal = externalAddress.length > 0;
 const userAddress = isExternal ? externalAddress : internalAddress;
 
 // ── 1. Setup Wallet Providers ─────────────────────────────────────────
@@ -445,10 +445,21 @@ async function loadWallet() {
 }
 
 // Set up signer before loading wallet
-let signer = new ethers.Wallet(privateKey, publicProvider);
+let signer = null;
+try {
+  if (privateKey) {
+    signer = new ethers.Wallet(privateKey, publicProvider);
+  }
+} catch(e) {
+  console.warn("Could not init local signer:", e);
+}
 
 // Start the load sequence immediately
-loadWallet();
+if (userAddress) {
+  loadWallet();
+} else {
+  document.getElementById('walletBalance').textContent = 'No Wallet Bound';
+}
 
 // ── 3. Send Transaction ──────────────────────────
 document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => {
