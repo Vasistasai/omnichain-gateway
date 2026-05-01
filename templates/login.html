@@ -818,11 +818,6 @@ async function handleAuth(url, payload, btnId, spinnerId, textId) {
     if (data.success && data.message === "OTP sent to email") {
       showStatus('✓ ' + data.message, 'success');
       
-      // For the hackathon demo, automatically show the OTP in an alert so judges can see it without checking the terminal
-      if (data.demo_otp) {
-        setTimeout(() => alert("Demo Mode OTP Intercepted: " + data.demo_otp), 500);
-      }
-      
       btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
       spinner.style.display = 'none';
       txt.textContent = '✓ Sent';

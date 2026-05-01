@@ -172,9 +172,32 @@ def forgot_password():
     otp = str(random.randint(100000, 999999))
     OTP_STORE[email] = otp
     
-    # In a real app we would send an email here. For hackathon, we return it so the frontend can display it.
-    print(f"\n[MOCK EMAIL SERVER] To: {email} | OTP: {otp}\n")
-    return jsonify({"success": True, "message": "OTP sent to email", "demo_otp": otp})
+    import smtplib
+    from email.mime.text import MIMEText
+    
+    sender_email = os.environ.get('EMAIL_USER')
+    sender_pass = os.environ.get('EMAIL_PASS')
+    
+    if sender_email and sender_pass:
+        try:
+            msg = MIMEText(f"Your SecurFund Ledger password recovery OTP is: {otp}\n\nDo not share this code with anyone.")
+            msg['Subject'] = 'SecurFund Ledger - Password Recovery'
+            msg['From'] = f"SecurFund Security <{sender_email}>"
+            msg['To'] = email
+
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                server.login(sender_email, sender_pass)
+                server.send_message(msg)
+                
+            print(f"\n[REAL EMAIL SENT] To: {email}\n")
+        except Exception as e:
+            print("Failed to send email:", e)
+            return jsonify({"error": "Failed to send email. Check SMTP credentials."}), 500
+    else:
+        # Fallback if no credentials are provided in .env
+        print(f"\n[MOCK EMAIL SERVER - NO CREDENTIALS CONFIGURED] To: {email} | OTP: {otp}\n")
+        
+    return jsonify({"success": True, "message": "OTP sent to email"})
 
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():
