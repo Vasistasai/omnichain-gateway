@@ -1,107 +1,308 @@
 {% extends "layout.html" %}
 {% block title %}Dashboard – OmniChain Gateway{% endblock %}
 
+{% block head %}
+<style>
+/* ── Premium Dashboard Specific Styles ── */
+.premium-header {
+  margin-bottom: 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.premium-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #ffffff, #a5b4fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.premium-subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 2.5rem;
+}
+
+/* 3D Web3 Card */
+.web3-card-container {
+  perspective: 1000px;
+  margin-bottom: 2rem;
+}
+
+.web3-card {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(34,211,238,0.1));
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.1);
+  transition: transform 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+.web3-card:hover {
+  transform: translateY(-5px) rotateX(5deg) rotateY(-5deg);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.2);
+}
+
+.web3-card::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 50%);
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+
+.card-chip {
+  width: 45px; height: 35px;
+  background: linear-gradient(135deg, #ffd700, #daa520);
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-chip::after {
+  content: ''; position: absolute; inset: 0;
+  background-image: linear-gradient(transparent 48%, rgba(0,0,0,0.2) 48%, rgba(0,0,0,0.2) 52%, transparent 52%),
+                    linear-gradient(90deg, transparent 48%, rgba(0,0,0,0.2) 48%, rgba(0,0,0,0.2) 52%, transparent 52%);
+}
+
+.card-balance-label { font-size: 0.75rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; }
+.card-balance { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 1rem; }
+.card-address { font-family: monospace; font-size: 0.85rem; color: var(--neon); letter-spacing: 1px; }
+
+/* Interactive Send Form */
+.send-portal {
+  background: rgba(13, 15, 26, 0.6);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.send-header {
+  font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+
+.premium-input {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 100%;
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.premium-input:focus {
+  background: rgba(0,0,0,0.5);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+  outline: none;
+}
+
+.amount-wrapper { position: relative; }
+.eth-badge {
+  position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  background: rgba(99,102,241,0.2); color: var(--accent);
+  padding: 0.3rem 0.6rem; border-radius: 6px; font-weight: 700; font-size: 0.8rem;
+}
+
+/* Pipeline Status */
+.pipeline {
+  display: flex; justify-content: space-between; position: relative; margin-top: 1.5rem; padding: 1rem 0;
+}
+.pipeline::before {
+  content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px;
+  background: rgba(255,255,255,0.1); z-index: 1; transform: translateY(-50%);
+}
+.pipe-node {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--bg);
+  border: 2px solid rgba(255,255,255,0.2); z-index: 2; position: relative;
+  display: flex; align-items: center; justify-content: center; transition: all 0.3s;
+}
+.pipe-node.active { border-color: var(--accent); background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-glow); }
+.pipe-node.done { border-color: var(--success); background: var(--success); color: #000; box-shadow: 0 0 15px var(--success-bg); }
+.pipe-label { position: absolute; top: 30px; font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; font-weight: 600; }
+
+/* Activity Feed */
+.activity-feed {
+  background: rgba(13, 15, 26, 0.6);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  height: 100%;
+}
+
+.activity-item {
+  display: flex; align-items: center; gap: 1rem; padding: 1.25rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: transform 0.2s;
+}
+
+.activity-item:hover { transform: translateX(5px); }
+.activity-item:last-child { border-bottom: none; }
+
+.activity-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; flex-shrink: 0;
+}
+.icon-send { background: rgba(99,102,241,0.15); color: var(--accent); }
+
+.activity-details { flex: 1; min-width: 0; }
+.activity-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem; display: flex; align-items: center; justify-content: space-between; }
+.activity-hash { font-family: monospace; font-size: 0.8rem; color: var(--text-muted); }
+
+/* Animation */
+.dashboard-layout > div { animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.dashboard-layout > div:nth-child(2) { animation-delay: 0.1s; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div class="page-title">My Web3 Dashboard</div>
-  <div class="page-subtitle">Send real ETH on Sepolia testnet and track your transfer history.</div>
+<div class="premium-header">
+  <div>
+    <div class="premium-title">Web3 Portal</div>
+    <div class="premium-subtitle">Manage your assets and interact with the Sepolia testnet seamlessly.</div>
+  </div>
+  <span id="networkBadge" class="badge badge-pending" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Checking Network...</span>
 </div>
 
 <!-- Wallet Status Banner -->
-<div id="walletBanner" class="status-box info mb-2" style="display:none;"></div>
+<div id="walletBanner" class="status-box info mb-2" style="display:none; border-radius: 16px;"></div>
 
-<div class="content-grid">
-  <!-- LEFT: Send ETH -->
-  <div class="glass-card">
-    <div class="section-header">
-      <div class="section-title">💸 Send ETH</div>
-      <span id="networkBadge" class="badge badge-pending">Checking...</span>
-    </div>
-
+<div class="dashboard-layout">
+  
+  <!-- LEFT COLUMN: Card & Send -->
+  <div>
     {% if not wallet_address %}
-    <!-- Step 1: Connect Wallet -->
-    <div id="connectArea" style="text-align:center; padding: 1rem 0;">
-      <p class="text-muted mb-2" style="font-size:0.9rem;">Connect your MetaMask wallet to start sending ETH on the Sepolia testnet.</p>
-      <button id="connectWalletBtn" class="btn btn-neon btn-full mb-1">🦊 Connect MetaMask</button>
-      <div id="connectError" class="status-box error hidden mt-1"></div>
-    </div>
+      <!-- Connect Prompt -->
+      <div class="send-portal" style="text-align:center; padding: 4rem 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🦊</div>
+        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Connect Wallet</h3>
+        <p class="text-muted mb-2">Link your MetaMask to access the portal.</p>
+        <button id="connectWalletBtn" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem; border-radius: 100px;">Connect MetaMask</button>
+        <div id="connectError" class="status-box error hidden mt-2"></div>
+      </div>
     {% else %}
-    <!-- Step 2: Wallet Info -->
-    <div class="wallet-info-card mb-2">
-      <div class="flex justify-between items-center">
-        <div class="form-label" style="margin:0;">Bound Wallet</div>
-        <button id="unbindBtn" class="btn btn-danger" style="padding:0.25rem 0.6rem; font-size:0.7rem;">Unbind</button>
-      </div>
-      <div class="wallet-address-text" id="walletAddrDisplay">{{ wallet_address }}</div>
-      <div class="flex justify-between items-center mt-1">
-        <span class="text-muted" style="font-size:0.8rem;">Balance</span>
-        <span id="walletBalance" class="text-neon" style="font-weight:700;">Loading...</span>
-      </div>
-    </div>
-
-    <!-- Step 3: Send Form -->
-    <form id="sendEthForm">
-      <div class="form-group">
-        <label class="form-label">Receiver Address</label>
-        <input type="text" id="receiver" class="form-control" placeholder="0x..." required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Amount (ETH)</label>
-        <input type="number" id="amount" class="form-control" step="0.0001" min="0.0001" placeholder="0.01" required>
+      <!-- 3D Web3 Card -->
+      <div class="web3-card-container">
+        <div class="web3-card">
+          <div class="flex justify-between items-start">
+            <div class="card-chip"></div>
+            <button id="unbindBtn" class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.7rem; border-radius:100px;">Unbind</button>
+          </div>
+          <div class="card-balance-label">Available Balance</div>
+          <div class="card-balance" id="walletBalance">-- ETH</div>
+          <div class="card-address" id="walletAddrDisplay">{{ wallet_address[:6] }}••••{{ wallet_address[-4:] }}</div>
+        </div>
       </div>
 
-      <div id="gasEstimate" class="gas-estimate hidden">
-        ⛽ Estimated Gas: <span id="gasValue">—</span> ETH &nbsp;|&nbsp; Total: <span id="totalCost">—</span> ETH
-      </div>
+      <!-- Send Portal -->
+      <div class="send-portal">
+        <div class="send-header">
+          <span style="font-size: 1.5rem;">💸</span> Send ETH
+        </div>
 
-      <button type="submit" id="sendBtn" class="btn btn-primary btn-full" disabled>
-        <span id="sendSpinner" class="spinner hidden"></span>
-        <span id="sendText">Sign & Broadcast Transaction</span>
-      </button>
-    </form>
+        <form id="sendEthForm">
+          <div style="margin-bottom: 1.5rem;">
+            <input type="text" id="receiver" class="premium-input" placeholder="Receiver Address (0x...)" required>
+          </div>
+          <div style="margin-bottom: 1.5rem;" class="amount-wrapper">
+            <input type="number" id="amount" class="premium-input" step="0.0001" min="0.0001" placeholder="0.00" required>
+            <span class="eth-badge">ETH</span>
+          </div>
+
+          <div id="gasEstimate" class="gas-estimate hidden" style="background: rgba(255,255,255,0.03); border:none; border-radius:12px;">
+            <div class="flex justify-between mb-1">
+              <span class="text-muted">Network Fee</span>
+              <span id="gasValue" class="text-mono">—</span>
+            </div>
+            <div class="flex justify-between font-bold" style="color:#fff;">
+              <span>Total Cost</span>
+              <span id="totalCost" class="text-mono">—</span>
+            </div>
+          </div>
+
+          <button type="submit" id="sendBtn" class="btn btn-primary btn-full" style="border-radius: 12px; padding: 1rem; font-size: 1rem;" disabled>
+            <span id="sendSpinner" class="spinner hidden"></span>
+            <span id="sendText">Sign & Broadcast</span>
+          </button>
+        </form>
+
+        <!-- Interactive Pipeline -->
+        <div id="txnPipeline" class="pipeline hidden">
+          <div class="pipe-node active" id="node-1"><span class="pipe-label">Sign</span></div>
+          <div class="pipe-node" id="node-2"><span class="pipe-label">Broadcast</span></div>
+          <div class="pipe-node" id="node-3"><span class="pipe-label">Confirm</span></div>
+        </div>
+        
+        <div id="txnStatus" class="status-box hidden mt-2" style="border-radius:12px; text-align:center;"></div>
+      </div>
     {% endif %}
-
-    <!-- Status -->
-    <div id="txnStatus" class="status-box hidden mt-2"></div>
   </div>
 
-  <!-- RIGHT: Transaction History -->
-  <div class="glass-card">
-    <div class="section-header">
-      <div class="section-title">📜 Transfer History</div>
-      <span class="badge badge-confirmed">{{ transactions|length }} Total</span>
-    </div>
+  <!-- RIGHT COLUMN: Activity Feed -->
+  <div>
+    <div class="activity-feed">
+      <div class="send-header" style="justify-content: space-between;">
+        <span><span style="font-size: 1.5rem;">📜</span> Recent Activity</span>
+        <span class="badge badge-admin">{{ transactions|length }} Records</span>
+      </div>
 
-    <div class="txn-list">
-      {% for txn in transactions %}
-      <div class="txn-card risk-{{ txn.risk_level }}">
-        <div style="flex:1; min-width:0;">
-          <div class="flex items-center gap-1 mb-1">
-            <span class="badge badge-{{ txn.risk_level }}">{{ txn.risk_level }} risk</span>
-            <span class="badge badge-{{ txn.status }}">{{ txn.status }}</span>
-            <span class="text-muted" style="font-size:0.75rem; margin-left:auto;">{{ txn.timestamp[:16] }}</span>
-          </div>
-          <div style="font-size:0.8rem; color:var(--text-muted);">To: <span class="text-mono" style="color:var(--neon);">{{ txn.receiver_address[:20] }}...</span></div>
-          {% if txn.block_number %}
-          <div style="font-size:0.75rem; color:var(--text-muted);">Block #{{ txn.block_number }} | Gas: {{ txn.gas_used }}</div>
-          {% endif %}
-          <div class="flex items-center gap-1 mt-1">
-            <span class="txn-hash-small">{{ txn.tx_hash[:18] }}...</span>
-            <button class="copy-btn" onclick="copyToClipboard('{{ txn.tx_hash }}', this)">⎘</button>
-            <a href="https://sepolia.etherscan.io/tx/{{ txn.tx_hash }}" target="_blank" class="badge badge-confirmed" style="font-size:0.65rem; text-decoration:none;">Etherscan ↗</a>
+      <div style="max-height: 600px; overflow-y: auto; padding-right: 0.5rem;">
+        {% for txn in transactions %}
+        <div class="activity-item">
+          <div class="activity-icon icon-send">↗</div>
+          <div class="activity-details">
+            <div class="activity-title">
+              <span>Sent ETH</span>
+              <span class="text-neon" style="font-family: monospace;">{{ "%.4f"|format(txn.amount_eth) }}</span>
+            </div>
+            <div class="activity-hash">To: {{ txn.receiver_address[:8] }}...{{ txn.receiver_address[-6:] }}</div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="badge badge-{{ txn.status }}" style="font-size: 0.6rem;">{{ txn.status }}</span>
+              <span class="badge badge-{{ txn.risk_level }}" style="font-size: 0.6rem;">{{ txn.risk_level }} risk</span>
+              <a href="https://sepolia.etherscan.io/tx/{{ txn.tx_hash }}" target="_blank" class="text-muted" style="font-size: 0.7rem; margin-left:auto;">{{ txn.timestamp[:10] }} ↗</a>
+            </div>
           </div>
         </div>
-        <div class="txn-amount">{{ "%.4f"|format(txn.amount_eth) }} ETH</div>
-      </div>
-      {% endfor %}
+        {% endfor %}
 
-      {% if not transactions %}
-      <div class="text-center text-muted" style="padding: 2rem 0; font-size:0.9rem;">
-        No transactions yet.<br>Connect your wallet and send your first transaction!
+        {% if not transactions %}
+        <div style="text-align:center; padding: 4rem 0; color: var(--text-secondary);">
+          <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📭</div>
+          <p>No activity yet.</p>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
   </div>
+
 </div>
 {% endblock %}
 
@@ -110,12 +311,25 @@
 let provider, signer;
 const userAddress = "{{ wallet_address if wallet_address else '' }}";
 
+// Pipeline UI helper
+function updatePipeline(step) {
+  document.getElementById('txnPipeline').classList.remove('hidden');
+  const n1 = document.getElementById('node-1');
+  const n2 = document.getElementById('node-2');
+  const n3 = document.getElementById('node-3');
+  
+  if(step === 1) { n1.className = 'pipe-node active'; n2.className = 'pipe-node'; n3.className = 'pipe-node'; }
+  if(step === 2) { n1.className = 'pipe-node done'; n1.innerHTML = '✓'; n2.className = 'pipe-node active'; n3.className = 'pipe-node'; }
+  if(step === 3) { n1.className = 'pipe-node done'; n1.innerHTML = '✓'; n2.className = 'pipe-node done'; n2.innerHTML = '✓'; n3.className = 'pipe-node active'; }
+  if(step === 4) { n3.className = 'pipe-node done'; n3.innerHTML = '✓'; }
+}
+
 // ── Connect Wallet ──────────────────────────────────────────────────────
 const connectBtn = document.getElementById('connectWalletBtn');
 if (connectBtn) {
   connectBtn.addEventListener('click', async () => {
     if (!window.ethereum) {
-      document.getElementById('connectError').textContent = 'MetaMask not detected. Please install it from metamask.io';
+      document.getElementById('connectError').textContent = 'MetaMask not detected. Please install it.';
       document.getElementById('connectError').classList.remove('hidden');
       return;
     }
@@ -130,16 +344,14 @@ if (connectBtn) {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('Wallet Connected!', accounts[0].substring(0,12) + '...', 'success');
-        setTimeout(() => window.location.reload(), 1000);
-      } else {
-        throw new Error(data.error);
-      }
+        showToast('Wallet Connected!', 'Initializing dashboard...', 'success');
+        setTimeout(() => window.location.reload(), 800);
+      } else throw new Error(data.error);
     } catch(e) {
       document.getElementById('connectError').textContent = e.message || 'Connection failed';
       document.getElementById('connectError').classList.remove('hidden');
       connectBtn.disabled = false;
-      connectBtn.innerHTML = '🦊 Connect MetaMask';
+      connectBtn.innerHTML = 'Connect MetaMask';
     }
   });
 }
@@ -148,7 +360,7 @@ if (connectBtn) {
 const unbindBtn = document.getElementById('unbindBtn');
 if (unbindBtn) {
   unbindBtn.addEventListener('click', async () => {
-    if (!confirm('Unbind this wallet from your account?')) return;
+    if (!confirm('Disconnect this wallet?')) return;
     await fetch('/api/unbind-wallet', { method: 'POST' });
     window.location.reload();
   });
@@ -167,7 +379,6 @@ async function initWeb3() {
   try {
     provider = new ethers.BrowserProvider(window.ethereum);
 
-    // Listen for account/network changes and refresh
     window.ethereum.on('accountsChanged', () => window.location.reload());
     window.ethereum.on('chainChanged', () => window.location.reload());
 
@@ -176,18 +387,16 @@ async function initWeb3() {
 
     if (network.chainId !== 11155111n) {
       networkBadge.className = 'badge badge-wrong-network';
-      networkBadge.textContent = '⚠ Wrong Network — Switch to Sepolia';
+      networkBadge.textContent = '⚠ Wrong Network';
       document.getElementById('walletBanner').style.display = 'block';
       document.getElementById('walletBanner').className = 'status-box warning mb-2';
       document.getElementById('walletBanner').innerHTML = `
-        <strong>⚠ Wrong Network!</strong> You are on chain ${network.chainId}. 
-        Please open MetaMask → click the network dropdown → select <strong>Sepolia</strong>.
-        Then <a href="" style="color:var(--neon); text-decoration:underline;">refresh this page</a>.`;
+        <strong>⚠ Wrong Network!</strong> Please open MetaMask and switch to <strong>Sepolia Testnet</strong>.`;
       return;
     }
 
     networkBadge.className = 'badge badge-network';
-    networkBadge.textContent = '✓ Sepolia';
+    networkBadge.textContent = '✓ Sepolia Network';
 
     signer = await provider.getSigner();
     const currentAddr = (await signer.getAddress()).toLowerCase();
@@ -196,10 +405,7 @@ async function initWeb3() {
       document.getElementById('walletBanner').style.display = 'block';
       document.getElementById('walletBanner').className = 'status-box error mb-2';
       document.getElementById('walletBanner').innerHTML = `
-        <strong>⚠ Wallet Mismatch!</strong><br>
-        MetaMask active: <code>${currentAddr.substring(0,14)}...</code><br>
-        Your bound wallet: <code>${userAddress.substring(0,14)}...</code><br>
-        Please switch MetaMask to your bound wallet, or click <strong>Unbind</strong> to rebind.`;
+        <strong>⚠ Wallet Mismatch!</strong> MetaMask active account does not match your profile. Please switch accounts or unbind.`;
       document.getElementById('sendBtn').disabled = true;
       return;
     }
@@ -207,10 +413,10 @@ async function initWeb3() {
     // Fetch balance
     const balance = await provider.getBalance(userAddress);
     const balEth = parseFloat(ethers.formatEther(balance));
-    document.getElementById('walletBalance').textContent = balEth.toFixed(6) + ' ETH';
+    document.getElementById('walletBalance').textContent = balEth.toFixed(4) + ' ETH';
     document.getElementById('sendBtn').disabled = false;
 
-    // Gas estimate on amount change
+    // Gas estimate
     document.getElementById('amount').addEventListener('input', async () => {
       const amount = document.getElementById('amount').value;
       const receiver = document.getElementById('receiver').value;
@@ -220,18 +426,14 @@ async function initWeb3() {
       }
       try {
         const feeData = await provider.getFeeData();
-        const gasLimit = 21000n;
-        const gasCostWei = gasLimit * feeData.gasPrice;
-        const gasCostEth = parseFloat(ethers.formatEther(gasCostWei));
-        document.getElementById('gasValue').textContent = gasCostEth.toFixed(6);
-        document.getElementById('totalCost').textContent = (parseFloat(amount) + gasCostEth).toFixed(6);
+        const gasCostEth = parseFloat(ethers.formatEther(21000n * feeData.gasPrice));
+        document.getElementById('gasValue').textContent = gasCostEth.toFixed(5) + ' ETH';
+        document.getElementById('totalCost').textContent = (parseFloat(amount) + gasCostEth).toFixed(5) + ' ETH';
         document.getElementById('gasEstimate').classList.remove('hidden');
       } catch(e) { /* ignore */ }
     });
 
-  } catch(e) {
-    console.error('Web3 init error:', e);
-  }
+  } catch(e) { console.error(e); }
 }
 
 // ── Send Transaction ────────────────────────────────────────────────────
@@ -243,65 +445,55 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
   const btn = document.getElementById('sendBtn');
 
   if (!ethers.isAddress(receiver)) {
-    statusBox.className = 'status-box error mt-2';
-    statusBox.textContent = '❌ Invalid Ethereum address.';
-    return;
+    statusBox.className = 'status-box error mt-2'; statusBox.textContent = '❌ Invalid address.'; return;
   }
 
   btn.disabled = true;
   document.getElementById('sendSpinner').classList.remove('hidden');
-  document.getElementById('sendText').textContent = 'Waiting for MetaMask...';
+  document.getElementById('sendText').textContent = 'Check MetaMask...';
+  updatePipeline(1);
+  
   statusBox.className = 'status-box info mt-2';
-  statusBox.textContent = '📋 Please confirm the transaction in MetaMask. If a "Review alert" appears, click it → then scroll down and click "Confirm".';
+  statusBox.textContent = 'Please confirm the transaction in your wallet.';
+  statusBox.classList.remove('hidden');
 
   try {
-    const tx = await signer.sendTransaction({
-      to: receiver,
-      value: ethers.parseEther(amount)
-    });
-
+    const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
+    
+    updatePipeline(2);
     statusBox.className = 'status-box warning mt-2';
-    statusBox.innerHTML = `⏳ Broadcasted! Waiting for block confirmation...<br>
-      <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" style="color:var(--neon);">
-        Track on Etherscan ↗ ${tx.hash.substring(0,18)}...
-      </a>`;
-
-    document.getElementById('sendText').textContent = 'Confirming on blockchain...';
+    statusBox.innerHTML = `⏳ Broadcasted! Waiting for block confirmation...`;
+    document.getElementById('sendText').textContent = 'Confirming...';
 
     const receipt = await tx.wait();
+    updatePipeline(3);
 
     // Sync to backend
     await fetch('/api/sync-tx', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tx_hash: tx.hash,
-        amount_eth: amount,
-        sender_address: userAddress,
-        receiver_address: receiver,
-        block_number: receipt.blockNumber,
-        gas_used: receipt.gasUsed?.toString()
+        tx_hash: tx.hash, amount_eth: amount, sender_address: userAddress, receiver_address: receiver,
+        block_number: receipt.blockNumber, gas_used: receipt.gasUsed?.toString()
       })
     });
 
+    updatePipeline(4);
     statusBox.className = 'status-box success mt-2';
-    statusBox.innerHTML = `✅ Confirmed in block <strong>${receipt.blockNumber}</strong>!<br>
-      <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" style="color:var(--success);">
-        View on Etherscan ↗
-      </a>`;
-
-    showToast('Transaction Confirmed!', `Block #${receipt.blockNumber}`, 'success');
-    setTimeout(() => window.location.reload(), 3000);
+    statusBox.innerHTML = `✅ Transfer Complete! View on Etherscan.`;
+    document.getElementById('sendText').textContent = 'Success!';
+    showToast('Sent Successfully', `${amount} ETH to ${receiver.substring(0,6)}...`, 'success');
+    
+    setTimeout(() => window.location.reload(), 2500);
 
   } catch(e) {
-    console.error(e);
-    const msg = e.code === 'ACTION_REJECTED' ? 'Transaction rejected by user.' : (e.reason || e.message || 'Transaction failed.');
-    statusBox.className = 'status-box error mt-2';
-    statusBox.textContent = '❌ ' + msg;
-    showToast('Transaction Failed', msg, 'error');
+    const msg = e.code === 'ACTION_REJECTED' ? 'User rejected.' : 'Transaction failed.';
+    statusBox.className = 'status-box error mt-2'; statusBox.textContent = '❌ ' + msg;
+    showToast('Failed', msg, 'error');
     btn.disabled = false;
     document.getElementById('sendSpinner').classList.add('hidden');
-    document.getElementById('sendText').textContent = 'Sign & Broadcast Transaction';
+    document.getElementById('sendText').textContent = 'Sign & Broadcast';
+    document.getElementById('txnPipeline').classList.add('hidden');
   }
 });
 
