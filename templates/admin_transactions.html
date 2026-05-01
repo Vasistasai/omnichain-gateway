@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{% block title %}All Transactions – Admin{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center">
+  <div>
+    <div class="page-title">All Transactions</div>
+    <div class="page-subtitle">Complete ledger of all blockchain transactions. Includes real-world identity data.</div>
+  </div>
+  <a href="/admin/export-csv" class="btn btn-ghost">⬇ Export CSV</a>
+</div>
+
+<!-- Filter Bar -->
+<form method="GET" action="/admin/transactions">
+  <div class="filter-bar">
+    <input type="text" name="search" class="form-control" placeholder="Search wallet / tx hash..." value="{{ search }}">
+    <select name="risk" class="form-control">
+      <option value="">All Risk Levels</option>
+      <option value="low" {% if risk_filter=='low' %}selected{% endif %}>🟢 Low</option>
+      <option value="medium" {% if risk_filter=='medium' %}selected{% endif %}>🟡 Medium</option>
+      <option value="high" {% if risk_filter=='high' %}selected{% endif %}>🔴 High</option>
+    </select>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="/admin/transactions" class="btn btn-ghost">Reset</a>
+    <span class="text-muted" style="font-size:0.85rem; margin-left:auto;">{{ transactions|length }} result(s)</span>
+  </div>
+</form>
+
+<div class="glass-card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Risk</th>
+          <th>IRL Name</th>
+          <th>IP Address</th>
+          <th>Sender Wallet</th>
+          <th>Receiver Wallet</th>
+          <th>Amount (ETH)</th>
+          <th>Block</th>
+          <th>Gas Used</th>
+          <th>Status</th>
+          <th>Timestamp</th>
+          <th>TX Hash</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for txn in transactions %}
+        <tr class="risk-{{ txn.risk_level }}" title="{{ txn.risk_reason }}">
+          <td style="color:var(--text-muted);">{{ txn.id }}</td>
+          <td><span class="badge badge-{{ txn.risk_level }}">{{ txn.risk_level }}</span></td>
+          <td style="color:var(--neon); font-family:sans-serif; font-weight:600;">{{ txn.real_name }}</td>
+          <td style="color:var(--danger); font-family:monospace;">{{ txn.ip_address }}</td>
+          <td>
+            <div class="hash-cell">
+              <span>{{ txn.sender_address[:14] if txn.sender_address else '—' }}...</span>
+              {% if txn.sender_address %}
+              <button class="copy-btn" onclick="copyToClipboard('{{ txn.sender_address }}', this)">⎘</button>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            <div class="hash-cell">
+              <span>{{ txn.receiver_address[:14] }}...</span>
+              <button class="copy-btn" onclick="copyToClipboard('{{ txn.receiver_address }}', this)">⎘</button>
+            </div>
+          </td>
+          <td style="color:var(--success); font-weight:700; font-family:sans-serif;">{{ "%.4f"|format(txn.amount_eth) }}</td>
+          <td>{{ txn.block_number or '—' }}</td>
+          <td>{{ txn.gas_used or '—' }}</td>
+          <td><span class="badge badge-{{ txn.status }}">{{ txn.status }}</span></td>
+          <td style="font-family:sans-serif; font-size:0.75rem; color:var(--text-muted);">{{ txn.timestamp[:16] }}</td>
+          <td>
+            <div class="hash-cell">
+              <a href="https://sepolia.etherscan.io/tx/{{ txn.tx_hash }}" target="_blank" style="color:var(--accent);">{{ txn.tx_hash[:12] }}... ↗</a>
+              <button class="copy-btn" onclick="copyToClipboard('{{ txn.tx_hash }}', this)">⎘</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% if not transactions %}
+        <tr>
+          <td colspan="12" class="text-center text-muted" style="padding: 3rem;">No transactions found matching your filters.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

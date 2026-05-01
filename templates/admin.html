@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% block title %}Admin Dashboard – OmniChain Gateway{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Admin Intelligence Portal</div>
+  <div class="page-subtitle">Real-time blockchain transaction monitoring with fraud detection.</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon blue">📋</div>
+    <div>
+      <div class="stat-label">Total Transactions</div>
+      <div class="stat-value blue">{{ stats.total_txns }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon cyan">⛓</div>
+    <div>
+      <div class="stat-label">ETH Transferred</div>
+      <div class="stat-value cyan">{{ "%.4f"|format(stats.total_eth) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon yellow">⚠</div>
+    <div>
+      <div class="stat-label">Flagged Transactions</div>
+      <div class="stat-value yellow">{{ stats.flagged }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">🚨</div>
+    <div>
+      <div class="stat-label">High Risk</div>
+      <div class="stat-value red">{{ stats.high_risk }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">👥</div>
+    <div>
+      <div class="stat-label">Registered Users</div>
+      <div class="stat-value green">{{ stats.total_users }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Links -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+  <a href="/admin/transactions" class="glass-card" style="display:block; text-decoration:none; text-align:center; padding: 1.5rem; transition: all 0.2s;">
+    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+    <div style="font-weight: 600; margin-bottom: 0.25rem;">All Transactions</div>
+    <div class="text-muted" style="font-size: 0.8rem;">View, filter & search every transaction</div>
+  </a>
+  <a href="/admin/suspicious" class="glass-card" style="display:block; text-decoration:none; text-align:center; padding: 1.5rem; border-color: rgba(239,68,68,0.3); transition: all 0.2s;">
+    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚨</div>
+    <div style="font-weight: 600; margin-bottom: 0.25rem;">Suspicious Activity</div>
+    <div class="text-muted" style="font-size: 0.8rem;">{{ stats.flagged }} flagged transactions</div>
+  </a>
+  <a href="/admin/analytics" class="glass-card" style="display:block; text-decoration:none; text-align:center; padding: 1.5rem; border-color: rgba(99,102,241,0.3); transition: all 0.2s;">
+    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+    <div style="font-weight: 600; margin-bottom: 0.25rem;">Analytics</div>
+    <div class="text-muted" style="font-size: 0.8rem;">Charts, trends, top receivers</div>
+  </a>
+  <a href="/admin/export-csv" class="glass-card" style="display:block; text-decoration:none; text-align:center; padding: 1.5rem; border-color: rgba(16,185,129,0.3); transition: all 0.2s;">
+    <div style="font-size: 2rem; margin-bottom: 0.5rem;">⬇</div>
+    <div style="font-weight: 600; margin-bottom: 0.25rem;">Export CSV</div>
+    <div class="text-muted" style="font-size: 0.8rem;">Download full transaction report</div>
+  </a>
+</div>
+
+<!-- Risk Legend -->
+<div class="glass-card">
+  <div class="section-title mb-2">🛡 Fraud Detection Rules</div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.875rem;">
+    <div>
+      <span class="badge badge-high" style="margin-bottom:0.5rem; display:inline-flex;">🔴 High Risk</span>
+      <ul style="color: var(--text-muted); padding-left: 1.2rem; margin-top: 0.4rem;">
+        <li>Amount ≥ 1 ETH</li>
+        <li>3+ transfers to same address</li>
+      </ul>
+    </div>
+    <div>
+      <span class="badge badge-medium" style="margin-bottom:0.5rem; display:inline-flex;">🟡 Medium Risk</span>
+      <ul style="color: var(--text-muted); padding-left: 1.2rem; margin-top: 0.4rem;">
+        <li>Amount ≥ 0.5 ETH</li>
+        <li>2 transfers to same address</li>
+      </ul>
+    </div>
+    <div>
+      <span class="badge badge-low" style="margin-bottom:0.5rem; display:inline-flex;">🟢 Low Risk</span>
+      <ul style="color: var(--text-muted); padding-left: 1.2rem; margin-top: 0.4rem;">
+        <li>Amount &lt; 0.5 ETH</li>
+        <li>First-time receiver</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

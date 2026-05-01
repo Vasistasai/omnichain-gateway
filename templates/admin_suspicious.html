@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block title %}Suspicious Activity – Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">🚨 Suspicious Activity</div>
+  <div class="page-subtitle">All transactions flagged by the fraud detection engine. Requires immediate review.</div>
+</div>
+
+{% if transactions %}
+<div class="status-box error mb-2">
+  ⚠ <strong>{{ transactions|length }} flagged transaction(s)</strong> detected. Review each transaction below.
+</div>
+{% else %}
+<div class="status-box success mb-2">
+  ✅ No suspicious activity detected. All transactions appear normal.
+</div>
+{% endif %}
+
+<div class="glass-card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Risk Level</th>
+          <th>Reason</th>
+          <th>IRL Name</th>
+          <th>IP Address</th>
+          <th>Sender</th>
+          <th>Receiver</th>
+          <th>Amount (ETH)</th>
+          <th>Block</th>
+          <th>Status</th>
+          <th>Timestamp</th>
+          <th>Etherscan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for txn in transactions %}
+        <tr class="risk-{{ txn.risk_level }}">
+          <td>
+            <span class="badge badge-{{ txn.risk_level }}">
+              {% if txn.risk_level == 'high' %}🔴{% else %}🟡{% endif %}
+              {{ txn.risk_level|upper }}
+            </span>
+          </td>
+          <td style="font-family:sans-serif; font-size:0.8rem; color:var(--warning); max-width:200px;">{{ txn.risk_reason }}</td>
+          <td style="color:var(--neon); font-family:sans-serif; font-weight:600;">{{ txn.real_name }}</td>
+          <td style="color:var(--danger);">{{ txn.ip_address }}</td>
+          <td>{{ txn.sender_address[:14] if txn.sender_address else '—' }}...</td>
+          <td>
+            <div class="hash-cell">
+              <span>{{ txn.receiver_address[:14] }}...</span>
+              <button class="copy-btn" onclick="copyToClipboard('{{ txn.receiver_address }}', this)">⎘</button>
+            </div>
+          </td>
+          <td style="color:var(--danger); font-weight:700; font-family:sans-serif;">{{ "%.4f"|format(txn.amount_eth) }}</td>
+          <td>{{ txn.block_number or '—' }}</td>
+          <td><span class="badge badge-{{ txn.status }}">{{ txn.status }}</span></td>
+          <td style="font-family:sans-serif; font-size:0.75rem; color:var(--text-muted);">{{ txn.timestamp[:16] }}</td>
+          <td>
+            <a href="https://sepolia.etherscan.io/tx/{{ txn.tx_hash }}" target="_blank" class="badge badge-confirmed">View ↗</a>
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% if not transactions %}
+        <tr>
+          <td colspan="11" class="text-center text-muted" style="padding: 3rem;">No suspicious activity found.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}OmniChain Gateway{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<div id="threejs-canvas"></div>
+
+{% if session.get('user_id') %}
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">⛓</div>
+      <div class="sidebar-logo-text">
+        OmniChain
+        <span>Web3 Gateway</span>
+      </div>
+    </div>
+
+    <div class="nav-section">Main</div>
+
+    {% if session.get('role') == 'Admin' %}
+      <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a href="/admin/transactions" class="nav-item {% if request.path == '/admin/transactions' %}active{% endif %}">
+        <span class="nav-icon">📋</span> All Transactions
+      </a>
+      <a href="/admin/suspicious" class="nav-item {% if request.path == '/admin/suspicious' %}active{% endif %}">
+        <span class="nav-icon">🚨</span> Suspicious Activity
+      </a>
+      <div class="nav-divider"></div>
+      <div class="nav-section">Analytics</div>
+      <a href="/admin/analytics" class="nav-item {% if request.path == '/admin/analytics' %}active{% endif %}">
+        <span class="nav-icon">📊</span> Analytics
+      </a>
+      <a href="/admin/export-csv" class="nav-item">
+        <span class="nav-icon">⬇</span> Export CSV
+      </a>
+    {% else %}
+      <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+    {% endif %}
+
+    <div class="sidebar-bottom">
+      <div class="user-badge">
+        <div class="user-avatar">{{ session.get('username', 'U')[0]|upper }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ session.get('username') }}</div>
+          <div class="user-role">{{ session.get('role') }}</div>
+        </div>
+        <a href="/logout" class="logout-btn" title="Logout">⎋</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<!-- Toast Notifications -->
+<div id="toast-container"></div>
+
+<script>
+// ── 3D Background ─────────────────────────────────────────────────────────
+(function() {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  document.getElementById('threejs-canvas').appendChild(renderer.domElement);
+
+  const coins = [];
+  const geom = new THREE.CylinderGeometry(1, 1, 0.18, 32);
+  const mats = [
+    new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.1 }),
+    new THREE.MeshStandardMaterial({ color: 0x6366f1, metalness: 0.8, roughness: 0.2 }),
+    new THREE.MeshStandardMaterial({ color: 0x22d3ee, metalness: 0.9, roughness: 0.1 }),
+    new THREE.MeshStandardMaterial({ color: 0x8b5cf6, metalness: 0.7, roughness: 0.3 }),
+  ];
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+  const l1 = new THREE.PointLight(0x6366f1, 2); l1.position.set(10, 10, 10); scene.add(l1);
+  const l2 = new THREE.PointLight(0x22d3ee, 1.5); l2.position.set(-10, -5, -10); scene.add(l2);
+
+  for (let i = 0; i < 20; i++) {
+    const coin = new THREE.Mesh(geom, mats[Math.floor(Math.random() * mats.length)]);
+    coin.position.set((Math.random()-0.5)*50, (Math.random()-0.5)*40, (Math.random()-0.5)*20 - 15);
+    coin.rotation.x = Math.random() * Math.PI;
+    coin.userData = { rx: (Math.random()-0.5)*0.015, ry: (Math.random()-0.5)*0.015, vy: (Math.random()*0.025)+0.005 };
+    coins.push(coin);
+    scene.add(coin);
+  }
+
+  camera.position.z = 18;
+
+  (function animate() {
+    requestAnimationFrame(animate);
+    coins.forEach(c => {
+      c.rotation.x += c.userData.rx;
+      c.rotation.y += c.userData.ry;
+      c.position.y += c.userData.vy;
+      if (c.position.y > 22) { c.position.y = -22; c.position.x = (Math.random()-0.5)*50; }
+    });
+    renderer.render(scene, camera);
+  })();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+// ── Toast System ─────────────────────────────────────────────────────────
+function showToast(title, msg, type='success') {
+  const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span>
+    <div><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
+// ── Copy to Clipboard ─────────────────────────────────────────────────────
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓'; setTimeout(() => btn.textContent = orig, 1500); }
+    showToast('Copied!', 'Text copied to clipboard.', 'info');
+  });
+}
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

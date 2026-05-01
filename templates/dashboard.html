@@ -1,0 +1,310 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard – OmniChain Gateway{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">My Web3 Dashboard</div>
+  <div class="page-subtitle">Send real ETH on Sepolia testnet and track your transfer history.</div>
+</div>
+
+<!-- Wallet Status Banner -->
+<div id="walletBanner" class="status-box info mb-2" style="display:none;"></div>
+
+<div class="content-grid">
+  <!-- LEFT: Send ETH -->
+  <div class="glass-card">
+    <div class="section-header">
+      <div class="section-title">💸 Send ETH</div>
+      <span id="networkBadge" class="badge badge-pending">Checking...</span>
+    </div>
+
+    {% if not wallet_address %}
+    <!-- Step 1: Connect Wallet -->
+    <div id="connectArea" style="text-align:center; padding: 1rem 0;">
+      <p class="text-muted mb-2" style="font-size:0.9rem;">Connect your MetaMask wallet to start sending ETH on the Sepolia testnet.</p>
+      <button id="connectWalletBtn" class="btn btn-neon btn-full mb-1">🦊 Connect MetaMask</button>
+      <div id="connectError" class="status-box error hidden mt-1"></div>
+    </div>
+    {% else %}
+    <!-- Step 2: Wallet Info -->
+    <div class="wallet-info-card mb-2">
+      <div class="flex justify-between items-center">
+        <div class="form-label" style="margin:0;">Bound Wallet</div>
+        <button id="unbindBtn" class="btn btn-danger" style="padding:0.25rem 0.6rem; font-size:0.7rem;">Unbind</button>
+      </div>
+      <div class="wallet-address-text" id="walletAddrDisplay">{{ wallet_address }}</div>
+      <div class="flex justify-between items-center mt-1">
+        <span class="text-muted" style="font-size:0.8rem;">Balance</span>
+        <span id="walletBalance" class="text-neon" style="font-weight:700;">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Step 3: Send Form -->
+    <form id="sendEthForm">
+      <div class="form-group">
+        <label class="form-label">Receiver Address</label>
+        <input type="text" id="receiver" class="form-control" placeholder="0x..." required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (ETH)</label>
+        <input type="number" id="amount" class="form-control" step="0.0001" min="0.0001" placeholder="0.01" required>
+      </div>
+
+      <div id="gasEstimate" class="gas-estimate hidden">
+        ⛽ Estimated Gas: <span id="gasValue">—</span> ETH &nbsp;|&nbsp; Total: <span id="totalCost">—</span> ETH
+      </div>
+
+      <button type="submit" id="sendBtn" class="btn btn-primary btn-full" disabled>
+        <span id="sendSpinner" class="spinner hidden"></span>
+        <span id="sendText">Sign & Broadcast Transaction</span>
+      </button>
+    </form>
+    {% endif %}
+
+    <!-- Status -->
+    <div id="txnStatus" class="status-box hidden mt-2"></div>
+  </div>
+
+  <!-- RIGHT: Transaction History -->
+  <div class="glass-card">
+    <div class="section-header">
+      <div class="section-title">📜 Transfer History</div>
+      <span class="badge badge-confirmed">{{ transactions|length }} Total</span>
+    </div>
+
+    <div class="txn-list">
+      {% for txn in transactions %}
+      <div class="txn-card risk-{{ txn.risk_level }}">
+        <div style="flex:1; min-width:0;">
+          <div class="flex items-center gap-1 mb-1">
+            <span class="badge badge-{{ txn.risk_level }}">{{ txn.risk_level }} risk</span>
+            <span class="badge badge-{{ txn.status }}">{{ txn.status }}</span>
+            <span class="text-muted" style="font-size:0.75rem; margin-left:auto;">{{ txn.timestamp[:16] }}</span>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted);">To: <span class="text-mono" style="color:var(--neon);">{{ txn.receiver_address[:20] }}...</span></div>
+          {% if txn.block_number %}
+          <div style="font-size:0.75rem; color:var(--text-muted);">Block #{{ txn.block_number }} | Gas: {{ txn.gas_used }}</div>
+          {% endif %}
+          <div class="flex items-center gap-1 mt-1">
+            <span class="txn-hash-small">{{ txn.tx_hash[:18] }}...</span>
+            <button class="copy-btn" onclick="copyToClipboard('{{ txn.tx_hash }}', this)">⎘</button>
+            <a href="https://sepolia.etherscan.io/tx/{{ txn.tx_hash }}" target="_blank" class="badge badge-confirmed" style="font-size:0.65rem; text-decoration:none;">Etherscan ↗</a>
+          </div>
+        </div>
+        <div class="txn-amount">{{ "%.4f"|format(txn.amount_eth) }} ETH</div>
+      </div>
+      {% endfor %}
+
+      {% if not transactions %}
+      <div class="text-center text-muted" style="padding: 2rem 0; font-size:0.9rem;">
+        No transactions yet.<br>Connect your wallet and send your first transaction!
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let provider, signer;
+const userAddress = "{{ wallet_address if wallet_address else '' }}";
+
+// ── Connect Wallet ──────────────────────────────────────────────────────
+const connectBtn = document.getElementById('connectWalletBtn');
+if (connectBtn) {
+  connectBtn.addEventListener('click', async () => {
+    if (!window.ethereum) {
+      document.getElementById('connectError').textContent = 'MetaMask not detected. Please install it from metamask.io';
+      document.getElementById('connectError').classList.remove('hidden');
+      return;
+    }
+    connectBtn.disabled = true;
+    connectBtn.innerHTML = '<span class="spinner"></span> Connecting...';
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const res = await fetch('/api/bind-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: accounts[0] })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Wallet Connected!', accounts[0].substring(0,12) + '...', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch(e) {
+      document.getElementById('connectError').textContent = e.message || 'Connection failed';
+      document.getElementById('connectError').classList.remove('hidden');
+      connectBtn.disabled = false;
+      connectBtn.innerHTML = '🦊 Connect MetaMask';
+    }
+  });
+}
+
+// ── Unbind Wallet ───────────────────────────────────────────────────────
+const unbindBtn = document.getElementById('unbindBtn');
+if (unbindBtn) {
+  unbindBtn.addEventListener('click', async () => {
+    if (!confirm('Unbind this wallet from your account?')) return;
+    await fetch('/api/unbind-wallet', { method: 'POST' });
+    window.location.reload();
+  });
+}
+
+// ── Init Web3 ──────────────────────────────────────────────────────────
+async function initWeb3() {
+  if (!userAddress) return;
+  if (!window.ethereum) {
+    document.getElementById('walletBanner').style.display = 'block';
+    document.getElementById('walletBanner').className = 'status-box warning mb-2';
+    document.getElementById('walletBanner').textContent = 'MetaMask not detected. Install MetaMask to send transactions.';
+    return;
+  }
+
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+
+    // Listen for account/network changes and refresh
+    window.ethereum.on('accountsChanged', () => window.location.reload());
+    window.ethereum.on('chainChanged', () => window.location.reload());
+
+    const network = await provider.getNetwork();
+    const networkBadge = document.getElementById('networkBadge');
+
+    if (network.chainId !== 11155111n) {
+      networkBadge.className = 'badge badge-wrong-network';
+      networkBadge.textContent = '⚠ Wrong Network — Switch to Sepolia';
+      document.getElementById('walletBanner').style.display = 'block';
+      document.getElementById('walletBanner').className = 'status-box warning mb-2';
+      document.getElementById('walletBanner').innerHTML = `
+        <strong>⚠ Wrong Network!</strong> You are on chain ${network.chainId}. 
+        Please open MetaMask → click the network dropdown → select <strong>Sepolia</strong>.
+        Then <a href="" style="color:var(--neon); text-decoration:underline;">refresh this page</a>.`;
+      return;
+    }
+
+    networkBadge.className = 'badge badge-network';
+    networkBadge.textContent = '✓ Sepolia';
+
+    signer = await provider.getSigner();
+    const currentAddr = (await signer.getAddress()).toLowerCase();
+
+    if (currentAddr !== userAddress.toLowerCase()) {
+      document.getElementById('walletBanner').style.display = 'block';
+      document.getElementById('walletBanner').className = 'status-box error mb-2';
+      document.getElementById('walletBanner').innerHTML = `
+        <strong>⚠ Wallet Mismatch!</strong><br>
+        MetaMask active: <code>${currentAddr.substring(0,14)}...</code><br>
+        Your bound wallet: <code>${userAddress.substring(0,14)}...</code><br>
+        Please switch MetaMask to your bound wallet, or click <strong>Unbind</strong> to rebind.`;
+      document.getElementById('sendBtn').disabled = true;
+      return;
+    }
+
+    // Fetch balance
+    const balance = await provider.getBalance(userAddress);
+    const balEth = parseFloat(ethers.formatEther(balance));
+    document.getElementById('walletBalance').textContent = balEth.toFixed(6) + ' ETH';
+    document.getElementById('sendBtn').disabled = false;
+
+    // Gas estimate on amount change
+    document.getElementById('amount').addEventListener('input', async () => {
+      const amount = document.getElementById('amount').value;
+      const receiver = document.getElementById('receiver').value;
+      if (!amount || !receiver || !ethers.isAddress(receiver)) {
+        document.getElementById('gasEstimate').classList.add('hidden');
+        return;
+      }
+      try {
+        const feeData = await provider.getFeeData();
+        const gasLimit = 21000n;
+        const gasCostWei = gasLimit * feeData.gasPrice;
+        const gasCostEth = parseFloat(ethers.formatEther(gasCostWei));
+        document.getElementById('gasValue').textContent = gasCostEth.toFixed(6);
+        document.getElementById('totalCost').textContent = (parseFloat(amount) + gasCostEth).toFixed(6);
+        document.getElementById('gasEstimate').classList.remove('hidden');
+      } catch(e) { /* ignore */ }
+    });
+
+  } catch(e) {
+    console.error('Web3 init error:', e);
+  }
+}
+
+// ── Send Transaction ────────────────────────────────────────────────────
+document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const receiver = document.getElementById('receiver').value.trim();
+  const amount = document.getElementById('amount').value;
+  const statusBox = document.getElementById('txnStatus');
+  const btn = document.getElementById('sendBtn');
+
+  if (!ethers.isAddress(receiver)) {
+    statusBox.className = 'status-box error mt-2';
+    statusBox.textContent = '❌ Invalid Ethereum address.';
+    return;
+  }
+
+  btn.disabled = true;
+  document.getElementById('sendSpinner').classList.remove('hidden');
+  document.getElementById('sendText').textContent = 'Waiting for MetaMask...';
+  statusBox.className = 'status-box info mt-2';
+  statusBox.textContent = '📋 Please confirm the transaction in MetaMask. If a "Review alert" appears, click it → then scroll down and click "Confirm".';
+
+  try {
+    const tx = await signer.sendTransaction({
+      to: receiver,
+      value: ethers.parseEther(amount)
+    });
+
+    statusBox.className = 'status-box warning mt-2';
+    statusBox.innerHTML = `⏳ Broadcasted! Waiting for block confirmation...<br>
+      <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" style="color:var(--neon);">
+        Track on Etherscan ↗ ${tx.hash.substring(0,18)}...
+      </a>`;
+
+    document.getElementById('sendText').textContent = 'Confirming on blockchain...';
+
+    const receipt = await tx.wait();
+
+    // Sync to backend
+    await fetch('/api/sync-tx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tx_hash: tx.hash,
+        amount_eth: amount,
+        sender_address: userAddress,
+        receiver_address: receiver,
+        block_number: receipt.blockNumber,
+        gas_used: receipt.gasUsed?.toString()
+      })
+    });
+
+    statusBox.className = 'status-box success mt-2';
+    statusBox.innerHTML = `✅ Confirmed in block <strong>${receipt.blockNumber}</strong>!<br>
+      <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" style="color:var(--success);">
+        View on Etherscan ↗
+      </a>`;
+
+    showToast('Transaction Confirmed!', `Block #${receipt.blockNumber}`, 'success');
+    setTimeout(() => window.location.reload(), 3000);
+
+  } catch(e) {
+    console.error(e);
+    const msg = e.code === 'ACTION_REJECTED' ? 'Transaction rejected by user.' : (e.reason || e.message || 'Transaction failed.');
+    statusBox.className = 'status-box error mt-2';
+    statusBox.textContent = '❌ ' + msg;
+    showToast('Transaction Failed', msg, 'error');
+    btn.disabled = false;
+    document.getElementById('sendSpinner').classList.add('hidden');
+    document.getElementById('sendText').textContent = 'Sign & Broadcast Transaction';
+  }
+});
+
+initWeb3();
+</script>
+{% endblock %}
