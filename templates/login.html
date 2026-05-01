@@ -1,27 +1,34 @@
 {% extends "layout.html" %}
-{% block title %}Login – OmniChain Gateway{% endblock %}
+{% block title %}SecurFund Ledger – Authentication{% endblock %}
 
 {% block auth_content %}
 <div class="login-wrapper">
   <!-- Interactive Fluid Cursor Blob -->
   <div class="cursor-blob" id="cursorBlob"></div>
+  
+  <!-- Cyber Network Grid Background -->
+  <div class="cyber-grid"></div>
 
   <div class="particles" id="particles"></div>
 
   <div class="login-card" id="loginCard">
     <div class="login-glow-orb"></div>
+    <div class="card-border-glow"></div>
 
     <div class="login-logo">
-      <div class="login-logo-icon" id="logoIcon">⛓</div>
-      <div class="login-title">OmniChain Gateway</div>
-      <div class="login-subtitle">Hybrid Web3 Enterprise Platform</div>
+      <div class="login-logo-icon" id="logoIcon">🛡️</div>
+      <div class="login-title">SecurFund Ledger</div>
+      <div class="login-subtitle" style="letter-spacing: 0.05em; font-size: 0.8rem; text-transform: uppercase;">Transparent. Traceable. Tamper-Evident.</div>
+      <div style="display:flex; justify-content:center; gap:10px; margin-top: 10px; color: var(--accent); font-size: 0.75rem;">
+        <span><i class="icon" style="font-style: normal;">⛓</i> Encrypted Access Enabled</span>
+      </div>
     </div>
 
     <!-- Sleek Pill Tab Switcher -->
-    <div style="position:relative; display:flex; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.05); border-radius:100px; padding:6px; margin-bottom:2rem; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
-      <div id="tabIndicator" style="position:absolute; top:6px; left:6px; width:calc(50% - 6px); height:calc(100% - 12px); background:linear-gradient(135deg, var(--primary), var(--accent)); border-radius:100px; transition:all 0.4s cubic-bezier(0.22, 1, 0.36, 1); z-index:0; box-shadow: 0 4px 15px rgba(99,102,241,0.4);"></div>
-      <button id="tabLogin" onclick="switchTab('login')" style="position:relative; z-index:1; flex:1; padding:0.75rem; border:none; background:transparent; color:#fff; font-weight:600; cursor:pointer; transition:color 0.3s; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Login</button>
-      <button id="tabSignup" onclick="switchTab('signup')" style="position:relative; z-index:1; flex:1; padding:0.75rem; border:none; background:transparent; color:var(--text-secondary); font-weight:600; cursor:pointer; transition:color 0.3s;">Sign Up</button>
+    <div style="position:relative; display:flex; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.08); border-radius:100px; padding:6px; margin-bottom:2rem; box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);">
+      <div id="tabIndicator" style="position:absolute; top:6px; left:6px; width:calc(50% - 6px); height:calc(100% - 12px); background:linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius:100px; transition:all 0.4s cubic-bezier(0.22, 1, 0.36, 1); z-index:0; box-shadow: 0 4px 15px rgba(59,130,246,0.5);"></div>
+      <button id="tabLogin" onclick="switchTab('login')" style="position:relative; z-index:1; flex:1; padding:0.75rem; border:none; background:transparent; color:#fff; font-weight:600; cursor:pointer; transition:color 0.3s; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Secure Login</button>
+      <button id="tabSignup" onclick="switchTab('signup')" style="position:relative; z-index:1; flex:1; padding:0.75rem; border:none; background:transparent; color:var(--text-secondary); font-weight:600; cursor:pointer; transition:color 0.3s;">Create Identity</button>
     </div>
 
     <div id="statusBox" class="status-box hidden mb-2"></div>
@@ -29,63 +36,82 @@
     <!-- LOGIN FORM -->
     <form id="loginForm" autocomplete="on">
       <div class="form-group">
-        <label class="form-label">Username</label>
+        <label class="form-label">Identity Hash (Username)</label>
         <div class="input-wrapper">
           <span class="input-icon">👤</span>
-          <input type="text" id="loginUsername" class="form-control form-control-icon" placeholder="Enter username" autocomplete="username" required>
+          <input type="text" id="loginUsername" class="form-control form-control-icon premium-input" placeholder="Enter username" autocomplete="username" required>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Password</label>
+        <label class="form-label">Encryption Key (Password)</label>
         <div class="input-wrapper">
-          <span class="input-icon">🔑</span>
-          <input type="password" id="loginPassword" class="form-control form-control-icon" placeholder="Enter password" autocomplete="current-password" required>
+          <span class="input-icon">🔒</span>
+          <input type="password" id="loginPassword" class="form-control form-control-icon premium-input" placeholder="Enter password" autocomplete="current-password" required>
+          <span class="toggle-password" onclick="togglePassword('loginPassword')">👁</span>
         </div>
       </div>
-      <button type="submit" id="loginBtn" class="btn btn-primary btn-full login-btn-animated">
+      <button type="submit" id="loginBtn" class="btn btn-primary btn-full login-btn-animated" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); border:none; margin-top: 1rem;">
         <span id="loginSpinner" class="spinner hidden"></span>
-        <span id="loginText">🚀 Secure Login</span>
+        <span id="loginText">Authenticate Session</span>
+      </button>
+      
+      <div style="position: relative; text-align: center; margin: 1.5rem 0;">
+        <span style="background: rgba(13,15,26,1); padding: 0 10px; color: var(--text-muted); font-size: 0.8rem; position: relative; z-index: 2;">OR</span>
+        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.1); z-index: 1;"></div>
+      </div>
+      
+      <button type="button" onclick="alert('MetaMask Integration Ready')" class="btn btn-ghost btn-full" style="border: 1px solid rgba(59,130,246,0.5); color: #fff; background: rgba(59,130,246,0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" width="20" height="20" alt="MetaMask">
+        Connect Web3 Wallet
       </button>
     </form>
 
     <!-- SIGNUP FORM (hidden initially) -->
     <form id="signupForm" autocomplete="on" style="display:none;">
       <div class="form-group">
-        <label class="form-label">Full Name</label>
+        <label class="form-label">Legal Entity Name</label>
         <div class="input-wrapper">
           <span class="input-icon">🪪</span>
-          <input type="text" id="signupName" class="form-control form-control-icon" placeholder="Your full name" required>
+          <input type="text" id="signupName" class="form-control form-control-icon premium-input" placeholder="Your full name" required>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Username</label>
+        <label class="form-label">Identity Hash (Username)</label>
         <div class="input-wrapper">
           <span class="input-icon">👤</span>
-          <input type="text" id="signupUsername" class="form-control form-control-icon" placeholder="Choose a username" required>
+          <input type="text" id="signupUsername" class="form-control form-control-icon premium-input" placeholder="Choose a username" required>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Password</label>
+        <label class="form-label">Encryption Key (Password)</label>
         <div class="input-wrapper">
-          <span class="input-icon">🔑</span>
-          <input type="password" id="signupPassword" class="form-control form-control-icon" placeholder="Min. 6 characters" required>
+          <span class="input-icon">🔒</span>
+          <input type="password" id="signupPassword" class="form-control form-control-icon premium-input" placeholder="Min. 8 characters" required>
+          <span class="toggle-password" onclick="togglePassword('signupPassword')">👁</span>
         </div>
       </div>
-      <button type="submit" id="signupBtn" class="btn btn-primary btn-full login-btn-animated">
+      <div class="form-group">
+        <label class="form-label">Verify Encryption Key</label>
+        <div class="input-wrapper">
+          <span class="input-icon">🛡️</span>
+          <input type="password" id="signupConfirm" class="form-control form-control-icon premium-input" placeholder="Repeat password" required>
+        </div>
+      </div>
+      <button type="submit" id="signupBtn" class="btn btn-primary btn-full login-btn-animated" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); border:none; margin-top: 1rem;">
         <span id="signupSpinner" class="spinner hidden"></span>
-        <span id="signupText">🌐 Create Wallet & Account</span>
+        <span id="signupText">Deploy Smart Contract Wallet</span>
       </button>
     </form>
 
-    <div id="demoCreds" class="demo-creds">
-      <div class="demo-creds-title">🔑 Demo Accounts</div>
+    <div id="demoCreds" class="demo-creds" style="border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.05);">
+      <div class="demo-creds-title" style="color: #a78bfa;">🔑 System Access Ports</div>
       <div class="demo-cred-row">
-        Admin <span>admin / admin123</span>
-        <button class="quick-fill-btn" onclick="quickFill('admin','admin123')">Fill</button>
+        Admin Node <span>admin / admin123</span>
+        <button class="quick-fill-btn" style="background: rgba(139,92,246,0.2); color:#ddd; border-color: rgba(139,92,246,0.4);" onclick="quickFill('admin','admin123')">Inject</button>
       </div>
       <div class="demo-cred-row">
-        User <span>public / public123</span>
-        <button class="quick-fill-btn" onclick="quickFill('public','public123')">Fill</button>
+        User Node <span>public / public123</span>
+        <button class="quick-fill-btn" style="background: rgba(139,92,246,0.2); color:#ddd; border-color: rgba(139,92,246,0.4);" onclick="quickFill('public','public123')">Inject</button>
       </div>
     </div>
   </div>
@@ -103,6 +129,16 @@ document.addEventListener('mousemove', (e) => {
   }
 });
 
+// Show/Hide Password Toggle
+function togglePassword(inputId) {
+  const input = document.getElementById(inputId);
+  if (input.type === "password") {
+    input.type = "text";
+  } else {
+    input.type = "password";
+  }
+}
+
 function switchTab(tab) {
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
@@ -110,8 +146,13 @@ function switchTab(tab) {
   const tabSignup = document.getElementById('tabSignup');
   const demoCreds = document.getElementById('demoCreds');
   const indicator = document.getElementById('tabIndicator');
+  const card = document.getElementById('loginCard');
   
   document.getElementById('statusBox').className = 'status-box hidden mb-2';
+
+  // Smooth form transition
+  card.style.transform = 'scale(0.98)';
+  setTimeout(() => card.style.transform = 'scale(1)', 200);
 
   if (tab === 'login') {
     loginForm.style.display = '';
@@ -146,10 +187,10 @@ function quickFill(u, p) {
 
 (function spawnParticles() {
   const container = document.getElementById('particles');
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 40; i++) {
     const p = document.createElement('div');
     p.className = 'particle';
-    p.style.cssText = `left:${Math.random()*100}%;width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;animation-duration:${6+Math.random()*12}s;animation-delay:${-Math.random()*10}s;opacity:${0.2+Math.random()*0.5};`;
+    p.style.cssText = `left:${Math.random()*100}%;width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;animation-duration:${5+Math.random()*10}s;animation-delay:${-Math.random()*10}s;opacity:${0.1+Math.random()*0.4};`;
     container.appendChild(p);
   }
 })();
@@ -163,7 +204,7 @@ async function handleAuth(url, payload, btnId, spinnerId, textId, successText) {
 
   btn.disabled = true;
   spinner.classList.remove('hidden');
-  txt.textContent = 'Processing...';
+  txt.textContent = 'Decrypting...';
 
   try {
     const res = await fetch(url, {
@@ -188,37 +229,50 @@ async function handleAuth(url, payload, btnId, spinnerId, textId, successText) {
       statusBox.textContent = '❌ ' + data.error;
       btn.disabled = false;
       spinner.classList.add('hidden');
-      txt.textContent = successText;
+      txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Smart Contract Wallet';
     }
-  } catch(err) {
+  } catch(e) {
     statusBox.className = 'status-box error mb-2';
-    statusBox.textContent = 'Network error. Is the server running?';
+    statusBox.textContent = '❌ Network connection failed.';
     btn.disabled = false;
     spinner.classList.add('hidden');
-    txt.textContent = successText;
+    txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Smart Contract Wallet';
   }
 }
 
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+document.getElementById('loginForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  await handleAuth('/api/auth', {
+  handleAuth('/api/auth', {
     username: document.getElementById('loginUsername').value,
     password: document.getElementById('loginPassword').value
-  }, 'loginBtn', 'loginSpinner', 'loginText', '🚀 Secure Login');
+  }, 'loginBtn', 'loginSpinner', 'loginText', 'Access Granted');
 });
 
-document.getElementById('signupForm').addEventListener('submit', async (e) => {
+document.getElementById('signupForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  await handleAuth('/api/register', {
+  const pwd = document.getElementById('signupPassword').value;
+  const confirm = document.getElementById('signupConfirm').value;
+  if (pwd !== confirm) {
+    document.getElementById('statusBox').className = 'status-box error mb-2';
+    document.getElementById('statusBox').textContent = '❌ Encryption Keys (Passwords) do not match.';
+    document.getElementById('statusBox').classList.remove('hidden');
+    return;
+  }
+  handleAuth('/api/register', {
     real_name: document.getElementById('signupName').value,
     username: document.getElementById('signupUsername').value,
-    password: document.getElementById('signupPassword').value
-  }, 'signupBtn', 'signupSpinner', 'signupText', '🌐 Create Wallet & Account');
+    password: pwd
+  }, 'signupBtn', 'signupSpinner', 'signupText', 'Wallet Deployed');
 });
 
-document.querySelectorAll('.form-control').forEach(inp => {
-  inp.addEventListener('focus', () => inp.parentElement.classList.add('input-focused'));
-  inp.addEventListener('blur',  () => inp.parentElement.classList.remove('input-focused'));
+// Focus glow effect for inputs
+document.querySelectorAll('.premium-input').forEach(input => {
+  input.addEventListener('focus', () => {
+    input.parentElement.classList.add('input-focused');
+  });
+  input.addEventListener('blur', () => {
+    input.parentElement.classList.remove('input-focused');
+  });
 });
 </script>
 {% endblock %}
