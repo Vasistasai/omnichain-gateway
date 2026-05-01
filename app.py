@@ -40,8 +40,9 @@ def calculate_risk(amount_eth, receiver_address, user_id):
 def sync_etherscan_history(wallet_address, user_id):
     if not wallet_address: return
     try:
-        url = f"https://api-sepolia.etherscan.io/api?module=account&action=txlist&address={wallet_address}&startblock=0&endblock=99999999&sort=desc"
-        res = requests.get(url, timeout=5)
+        # We use Blockscout API because Etherscan recently deprecated free V1 endpoints
+        url = f"https://eth-sepolia.blockscout.com/api?module=account&action=txlist&address={wallet_address}"
+        res = requests.get(url, timeout=10)
         data = res.json()
         if data.get("status") == "1" and isinstance(data.get("result"), list):
             conn = get_db_connection()
