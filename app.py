@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
-import os, csv, io, json
+import os, csv, io, json, requests
 from database import init_db, get_db_connection
 
 app = Flask(__name__)
@@ -36,6 +36,37 @@ def calculate_risk(amount_eth, receiver_address, user_id):
         risk_reason = f'Multiple transfers ({repeated}x) to same address'
 
     return risk_level, risk_reason
+
+def sync_etherscan_history(wallet_address, user_id):
+    if not wallet_address: return
+    try:
+        url = f"https://api-sepolia.etherscan.io/api?module=account&action=txlist&address={wallet_address}&startblock=0&endblock=99999999&sort=desc"
+        res = requests.get(url, timeout=5)
+        data = res.json()
+        if data.get("status") == "1" and isinstance(data.get("result"), list):
+            conn = get_db_connection()
+            for tx in data["result"]:
+                tx_hash = tx.get("hash")
+                # Check if exists
+                exists = conn.execute("SELECT id FROM transactions WHERE tx_hash = ?", (tx_hash,)).fetchone()
+                if not exists:
+                    amount_eth = float(tx.get("value", 0)) / 10**18
+                    if amount_eth > 0:  # Only track non-zero ETH transfers
+                        sender = tx.get("from", "")
+                        receiver = tx.get("to", "")
+                        block_number = int(tx.get("blockNumber", 0))
+                        gas_used = int(tx.get("gasUsed", 0))
+                        
+                        risk_level, risk_reason = calculate_risk(amount_eth, receiver, user_id)
+                        
+                        conn.execute('''INSERT INTO transactions 
+                            (user_id, tx_hash, amount_eth, sender_address, receiver_address, block_number, gas_used, status, risk_level, risk_reason)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                            (user_id, tx_hash, amount_eth, sender, receiver, block_number, gas_used, 'confirmed', risk_level, risk_reason))
+            conn.commit()
+            conn.close()
+    except Exception as e:
+        print("Etherscan sync error:", e)
 
 # ─── Auth Routes ──────────────────────────────────────────────────────────────
 @app.route('/')
@@ -85,6 +116,10 @@ def user_dashboard():
         return redirect(url_for('index'))
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    
+    # Automatically fetch incoming deposits from Etherscan to show external history
+    sync_etherscan_history(user['wallet_address'], session['user_id'])
+    
     txns = conn.execute('SELECT * FROM transactions WHERE user_id = ? ORDER BY id DESC', (session['user_id'],)).fetchall()
     conn.close()
     return render_template('dashboard.html', wallet_address=user['wallet_address'], private_key=user['private_key'], transactions=txns)

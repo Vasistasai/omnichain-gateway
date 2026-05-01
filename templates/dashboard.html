@@ -282,13 +282,21 @@
       <div style="max-height: 350px; overflow-y: auto; padding-right: 0.5rem;">
         {% for txn in transactions %}
         <div class="activity-item">
-          <div class="activity-icon icon-send">↗</div>
+          <div class="activity-icon icon-send" style="{% if txn.receiver_address|lower == wallet_address|lower %}background: rgba(16,185,129,0.15); color: var(--success);{% endif %}">
+            {% if txn.receiver_address|lower == wallet_address|lower %}↙{% else %}↗{% endif %}
+          </div>
           <div class="activity-details">
             <div class="activity-title">
-              <span>Sent ETH</span>
+              <span>{% if txn.receiver_address|lower == wallet_address|lower %}Received ETH{% else %}Sent ETH{% endif %}</span>
               <span class="text-neon" style="font-family: monospace;">{{ "%.4f"|format(txn.amount_eth) }}</span>
             </div>
-            <div class="activity-hash">To: {{ txn.receiver_address[:8] }}...{{ txn.receiver_address[-6:] }}</div>
+            <div class="activity-hash">
+              {% if txn.receiver_address|lower == wallet_address|lower %}
+                From: {{ txn.sender_address[:8] }}...{{ txn.sender_address[-6:] }}
+              {% else %}
+                To: {{ txn.receiver_address[:8] }}...{{ txn.receiver_address[-6:] }}
+              {% endif %}
+            </div>
             <div class="flex items-center gap-1 mt-1">
               <span class="badge badge-{{ txn.status }}" style="font-size: 0.6rem;">{{ txn.status }}</span>
               <span class="badge badge-{{ txn.risk_level }}" style="font-size: 0.6rem;">{{ txn.risk_level }} risk</span>
