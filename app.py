@@ -172,9 +172,9 @@ def forgot_password():
     otp = str(random.randint(100000, 999999))
     OTP_STORE[email] = otp
     
-    # In a real app we would send an email here. For hackathon, we simulate it.
+    # In a real app we would send an email here. For hackathon, we return it so the frontend can display it.
     print(f"\n[MOCK EMAIL SERVER] To: {email} | OTP: {otp}\n")
-    return jsonify({"success": True, "message": "OTP sent to email"})
+    return jsonify({"success": True, "message": "OTP sent to email", "demo_otp": otp})
 
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():
