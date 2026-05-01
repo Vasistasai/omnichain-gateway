@@ -318,8 +318,8 @@ const userAddress = "{{ wallet_address }}";
 const privateKey = "{{ private_key }}";
 
 // ── 1. Setup Custom Ethers Wallet (No MetaMask) ─────────────────────────
-// We use public Infura/Alchemy endpoint for Sepolia
-const provider = new ethers.JsonRpcProvider("https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161");
+// We use a public RPC endpoint for Sepolia to avoid API key rate limits or CORS issues
+const provider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
 const wallet = new ethers.Wallet(privateKey, provider);
 
 // Pipeline UI helper
