@@ -187,12 +187,7 @@
     <div class="premium-subtitle">Your private non-custodial wallet on the Sepolia network.</div>
   </div>
   <div style="text-align: right;">
-    <select id="assetSelector" style="background: transparent; border: none; color: var(--success); font-weight: bold; cursor: pointer; outline: none;">
-      <option value="ETH" style="background: #000;">Ethereum (ETH)</option>
-      <option value="BTC" style="background: #000;">Bitcoin (BTC)</option>
-      <option value="SOL" style="background: #000;">Solana (SOL)</option>
-      <option value="USDT" style="background: #000;">Tether (USDT)</option>
-    </select>
+    <div style="font-weight: bold; color: var(--primary); font-size: 1.2rem;" id="assetLabelHeader">Ethereum (ETH)</div>
     <div style="margin-top: 0.5rem; font-family: monospace; font-size: 0.8rem; color: var(--success);" id="livePrice">ETH Live: $2,305.87</div>
   </div>
 </div>
@@ -228,8 +223,12 @@
     <div id="connectError" class="status-box error hidden mb-4"></div>
 
     <!-- 3D Web3 Card (Shows active wallet) -->
-    <div class="web3-card-container">
-      <div class="web3-card">
+    <div class="web3-card-container" style="position: relative; display: flex; align-items: center; justify-content: center;">
+      <!-- Slider Arrows -->
+      <button onclick="prevAsset()" style="position: absolute; left: -15px; z-index: 10; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 40px; height: 40px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: background 0.2s; backdrop-filter: blur(4px);">❮</button>
+      <button onclick="nextAsset()" style="position: absolute; right: -15px; z-index: 10; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 40px; height: 40px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: background 0.2s; backdrop-filter: blur(4px);">❯</button>
+
+      <div class="web3-card" style="width: 100%; transition: transform 0.3s ease-in-out;" id="web3CardContent">
         <div class="flex justify-between items-start">
           <div class="card-chip"></div>
           <div style="font-family: monospace; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 0.5rem;">
@@ -306,8 +305,9 @@
     
     <!-- Market Chart -->
     <div class="glass-panel">
-      <div class="send-header">
-        <span><span style="font-size: 1.5rem;">📈</span> Ethereum Live Market</span>
+      <div class="send-header" style="justify-content: space-between;">
+        <span><span style="font-size: 1.5rem;">📈</span> <span id="chartTitle">Ethereum Live Market</span></span>
+        <span class="badge badge-network" id="chartBadge" style="font-size: 0.7rem;">Live Data</span>
       </div>
       <div style="height: 200px; width: 100%;">
         <canvas id="marketChart"></canvas>
@@ -377,44 +377,73 @@ const solAddress = "{{ sol_wallet if sol_wallet else '' }}";
 const privateKey = "{{ private_key if private_key and private_key != 'None' else '' }}";
 
 const isExternal = externalAddress.length > 0;
-let currentAsset = 'ETH';
+
+const ASSETS = [
+  { id: 'ETH', name: 'Ethereum', coingecko: 'ethereum' },
+  { id: 'BTC', name: 'Bitcoin', coingecko: 'bitcoin' },
+  { id: 'SOL', name: 'Solana', coingecko: 'solana' },
+  { id: 'USDT', name: 'Tether', coingecko: 'tether' }
+];
+let currentAssetIdx = 0;
+let currentAsset = ASSETS[0].id;
+let marketChart = null;
 
 // Asset Switching Logic
-const assetSelector = document.getElementById('assetSelector');
 const walletAddrDisplay = document.getElementById('walletAddrDisplay');
 const walletBalance = document.getElementById('walletBalance');
 const assetLabel = document.getElementById('assetLabel');
+const assetLabelHeader = document.getElementById('assetLabelHeader');
+const cardContent = document.getElementById('web3CardContent');
+
+function nextAsset() {
+  currentAssetIdx = (currentAssetIdx + 1) % ASSETS.length;
+  animateCard();
+  updateUIForAsset();
+}
+
+function prevAsset() {
+  currentAssetIdx = (currentAssetIdx - 1 + ASSETS.length) % ASSETS.length;
+  animateCard();
+  updateUIForAsset();
+}
+
+function animateCard() {
+  cardContent.style.transform = 'scale(0.95)';
+  setTimeout(() => cardContent.style.transform = 'scale(1)', 150);
+}
 
 function updateUIForAsset() {
-  currentAsset = assetSelector.value;
+  const assetObj = ASSETS[currentAssetIdx];
+  currentAsset = assetObj.id;
+  
+  assetLabelHeader.textContent = `${assetObj.name} (${assetObj.id})`;
   assetLabel.textContent = currentAsset;
   
   if (isExternal) {
     walletAddrDisplay.innerHTML = `${externalAddress.slice(0,6)}••••${externalAddress.slice(-4)} <span class="copy-icon" onclick="copyToClipboard('${externalAddress}', this)">⎘</span>`;
     if (currentAsset !== 'ETH') walletBalance.textContent = '0.0000 ' + currentAsset;
     else loadWallet(); // real ETH balance
-    return;
-  }
-  
-  let addr = internalAddress;
-  if (currentAsset === 'BTC') addr = btcAddress;
-  if (currentAsset === 'SOL') addr = solAddress;
-  
-  if (addr) {
-    walletAddrDisplay.innerHTML = `${addr.slice(0,6)}••••${addr.slice(-4)} <span class="copy-icon" onclick="copyToClipboard('${addr}', this)">⎘</span>`;
-  }
-  
-  if (currentAsset !== 'ETH') {
-    // Mock balances for hackathon demo
-    walletBalance.textContent = currentAsset === 'BTC' ? '0.1450 BTC' : (currentAsset === 'SOL' ? '12.4000 SOL' : '500.00 USDT');
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('sendBtn').textContent = 'Sign & Broadcast';
   } else {
-    loadWallet(); // real ETH balance
+    let addr = internalAddress;
+    if (currentAsset === 'BTC') addr = btcAddress;
+    if (currentAsset === 'SOL') addr = solAddress;
+    
+    if (addr) {
+      walletAddrDisplay.innerHTML = `${addr.slice(0,6)}••••${addr.slice(-4)} <span class="copy-icon" onclick="copyToClipboard('${addr}', this)">⎘</span>`;
+    }
+    
+    if (currentAsset !== 'ETH') {
+      walletBalance.textContent = currentAsset === 'BTC' ? '0.1450 BTC' : (currentAsset === 'SOL' ? '12.4000 SOL' : '500.00 USDT');
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('sendBtn').textContent = 'Sign & Broadcast';
+    } else {
+      loadWallet(); // real ETH balance
+    }
   }
+  
+  // Reload Chart
+  loadChart(assetObj);
 }
-
-assetSelector.addEventListener('change', updateUIForAsset);
 const userAddress = isExternal ? externalAddress : internalAddress;
 
 // ── 1. Setup Wallet Providers ─────────────────────────────────────────
@@ -648,14 +677,16 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
 });
 
 // ── 4. Live Crypto Chart (CoinGecko) ──────────────────────────────────
-async function loadChart() {
+async function loadChart(assetObj) {
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=7');
+    document.getElementById('chartTitle').textContent = `${assetObj.name} Live Market`;
+    
+    const res = await fetch(`https://api.coingecko.com/api/v3/coins/${assetObj.coingecko}/market_chart?vs_currency=usd&days=7`);
     const data = await res.json();
     
-    const currentPriceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+    const currentPriceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${assetObj.coingecko}&vs_currencies=usd`);
     const priceData = await currentPriceRes.json();
-    document.getElementById('livePrice').textContent = `ETH Live: $${priceData.ethereum.usd.toLocaleString()}`;
+    document.getElementById('livePrice').textContent = `${assetObj.id} Live: $${priceData[assetObj.coingecko].usd.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
 
     const prices = data.prices;
     const labels = prices.map(p => {
@@ -666,19 +697,24 @@ async function loadChart() {
 
     const ctx = document.getElementById('marketChart').getContext('2d');
     
+    if (marketChart) {
+      marketChart.destroy();
+    }
+    
     // Gradient fill
     const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-    gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+    const color = assetObj.id === 'BTC' ? '247, 147, 26' : (assetObj.id === 'SOL' ? '20, 241, 149' : (assetObj.id === 'USDT' ? '38, 161, 123' : '99, 102, 241'));
+    gradient.addColorStop(0, `rgba(${color}, 0.4)`);
+    gradient.addColorStop(1, `rgba(${color}, 0.0)`);
 
-    new Chart(ctx, {
+    marketChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
         datasets: [{
-          label: 'ETH Price (USD) - 7 Days',
+          label: `${assetObj.id} Price (USD) - 7 Days`,
           data: dataPoints,
-          borderColor: '#6366f1',
+          borderColor: `rgb(${color})`,
           backgroundColor: gradient,
           borderWidth: 2,
           pointRadius: 0,
@@ -706,7 +742,7 @@ async function loadChart() {
     console.error("Chart load error:", e);
   }
 }
-loadChart();
+
 
 </script>
 {% endblock %}
