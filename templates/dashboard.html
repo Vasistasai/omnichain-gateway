@@ -42,14 +42,16 @@
 .web3-card {
   width: 100%;
   height: 200px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(34,211,238,0.1));
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(34,211,238,0.08));
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-top: 1px solid rgba(255,255,255,0.2);
   border-radius: 20px;
   padding: 1.5rem;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.1);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
   transition: transform 0.3s ease;
   transform-style: preserve-3d;
 }
@@ -96,17 +98,17 @@
 
 /* Interactive Send Form */
 .send-portal {
-  background: rgba(10, 12, 24, 0.55);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(99,102,241,0.18);
-  border-top: 1px solid rgba(255,255,255,0.12);
+  background: rgba(8, 10, 20, 0.5);
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-top: 1px solid rgba(255,255,255,0.14);
   border-radius: 24px;
   padding: 2rem;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
   transition: border-color 0.3s;
 }
-.send-portal:hover { border-color: rgba(99,102,241,0.35); }
+.send-portal:hover { border-color: rgba(99,102,241,0.4); }
 
 .send-header {
   font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem;
@@ -159,19 +161,19 @@
 }
 
 .glass-panel {
-  background: rgba(10, 12, 24, 0.55);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  background: rgba(8, 10, 20, 0.5);
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
   border: 1px solid rgba(255,255,255,0.08);
-  border-top: 1px solid rgba(255,255,255,0.12);
+  border-top: 1px solid rgba(255,255,255,0.14);
   border-radius: 24px;
   padding: 2rem;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 .glass-panel:hover {
-  border-color: rgba(99,102,241,0.25);
-  box-shadow: 0 12px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+  border-color: rgba(99,102,241,0.3);
+  box-shadow: 0 12px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 .activity-item {
@@ -214,9 +216,7 @@
   </div>
 </div>
 
-<div id="walletBanner" class="status-box warning mb-2" style="border-radius: 16px;">
-  <strong>Notice:</strong> This is a custom-generated wallet. If you have 0 ETH, please use a Sepolia Faucet to fund <code>{{ wallet_address }}</code>
-</div>
+
 
 <div class="dashboard-layout">
   
