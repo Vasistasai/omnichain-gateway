@@ -1,0 +1,78 @@
+{% extends 'layout.html' %}
+{% block title %}Settings - OmniChain Gateway{% endblock %}
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+  
+  <h2 style="font-size: 2rem; margin-bottom: 2rem;">Account Settings</h2>
+
+  <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 2rem;">
+    <h3 style="margin-top: 0; color: #fff;">Personal Wallet Security</h3>
+    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+      Your Private Key is the master password to your auto-generated Personal Wallet. Never share this with anyone. If you lose this key or it is stolen, you will lose access to your funds.
+    </p>
+
+    <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1.5rem; border-radius: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <span style="color: var(--warning); font-weight: bold; font-size: 0.9rem;">⚠️ Secret Private Key</span>
+        <button id="copyKeyBtn" class="btn btn-ghost" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.3rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy
+        </button>
+      </div>
+
+      <div id="privateKeyContainer" style="position: relative; background: #000; padding: 1rem; border-radius: 8px; cursor: pointer; text-align: center; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
+        
+        <div id="pkOverlay" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); z-index: 10; transition: opacity 0.2s;">
+          <span style="color: #fff; font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Click to Reveal Key (3s)</span>
+        </div>
+
+        <div id="pkText" style="font-family: monospace; color: #fff; font-size: 0.9rem; word-break: break-all; filter: blur(6px); transition: filter 0.2s;">
+          {{ private_key }}
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const pkContainer = document.getElementById('privateKeyContainer');
+  const pkOverlay = document.getElementById('pkOverlay');
+  const pkText = document.getElementById('pkText');
+  const copyKeyBtn = document.getElementById('copyKeyBtn');
+  const rawKey = "{{ private_key }}";
+  
+  let blurTimeout;
+
+  pkContainer.addEventListener('click', () => {
+    // Reveal
+    pkOverlay.style.opacity = '0';
+    pkText.style.filter = 'blur(0px)';
+    
+    // Clear any existing timeout
+    clearTimeout(blurTimeout);
+
+    // Auto blur after 3 seconds
+    blurTimeout = setTimeout(() => {
+      pkOverlay.style.opacity = '1';
+      pkText.style.filter = 'blur(6px)';
+    }, 3000);
+  });
+
+  copyKeyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(rawKey);
+      const originalText = copyKeyBtn.innerHTML;
+      copyKeyBtn.innerHTML = '✓ Copied!';
+      setTimeout(() => {
+        copyKeyBtn.innerHTML = originalText;
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  });
+</script>
+{% endblock %}

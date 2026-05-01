@@ -152,24 +152,44 @@ def logout():
 
 # ─── User Routes ─────────────────────────────────────────────────────────────
 @app.route('/dashboard')
-def user_dashboard():
-    if 'user_id' not in session or session.get('role') == 'Admin':
+def dashboard():
+    if 'user_id' not in session:
         return redirect(url_for('index'))
+    if session.get('role') == 'Admin':
+        return redirect(url_for('admin_dashboard'))
+    
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     
-    # Automatically fetch incoming deposits from Etherscan to show external history
-    sync_etherscan_history(user['wallet_address'], session['user_id'])
+    # Trigger a sync for both wallets to fetch latest transactions on page load
+    if user['wallet_address']:
+        sync_etherscan_history(user['wallet_address'], user['id'])
     if user['external_wallet']:
-        sync_etherscan_history(user['external_wallet'], session['user_id'])
-    
+        sync_etherscan_history(user['external_wallet'], user['id'])
+        
     txns = conn.execute('SELECT * FROM transactions WHERE user_id = ? ORDER BY id DESC', (session['user_id'],)).fetchall()
     conn.close()
     return render_template('dashboard.html', 
                            wallet_address=user['wallet_address'], 
-                           private_key=user['private_key'], 
+                           private_key=user['private_key'],
                            external_wallet=user['external_wallet'],
                            transactions=txns)
+
+@app.route('/settings')
+def settings_page():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+    if session.get('role') == 'Admin':
+        return redirect(url_for('admin_dashboard'))
+        
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    conn.close()
+    
+    return render_template('settings.html', 
+                           wallet_address=user['wallet_address'], 
+                           private_key=user['private_key'],
+                           external_wallet=user['external_wallet'])
 
 @app.route('/api/sync-tx', methods=['POST'])
 def sync_tx():
