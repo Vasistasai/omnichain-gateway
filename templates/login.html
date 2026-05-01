@@ -1,278 +1,598 @@
 {% extends "layout.html" %}
-{% block title %}SecurFund Ledger – Authentication{% endblock %}
+{% block title %}SecurFund Ledger – Secure Authentication{% endblock %}
+
+{% block head %}
+<style>
+/* Override body for full-screen auth */
+body { overflow: hidden; }
+#threejs-canvas { position: fixed !important; inset: 0; z-index: 0; }
+
+/* ── Full screen split layout ── */
+.auth-split {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 480px;
+  z-index: 10;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ── LEFT BRANDING PANEL ── */
+.auth-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5rem 6rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-left-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(10,12,25,0.85) 0%, rgba(10,12,25,0.4) 100%);
+  backdrop-filter: blur(2px);
+}
+
+.auth-left-content { position: relative; z-index: 2; }
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(59,130,246,0.15);
+  border: 1px solid rgba(59,130,246,0.35);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 0.78rem;
+  color: #93c5fd;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  width: fit-content;
+}
+
+.brand-dot { width: 7px; height: 7px; background: #3b82f6; border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+
+.brand-title {
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 30%, #93c5fd 65%, #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.25rem;
+}
+
+.brand-tagline {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.7;
+  max-width: 480px;
+  margin-bottom: 3rem;
+}
+
+.brand-features { display: flex; flex-direction: column; gap: 1rem; }
+
+.brand-feature {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.95rem;
+}
+
+.feature-icon {
+  width: 40px; height: 40px;
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.brand-stats {
+  display: flex;
+  gap: 3rem;
+  margin-top: 3.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.stat-item { display: flex; flex-direction: column; gap: 4px; }
+.stat-num { font-size: 1.6rem; font-weight: 700; color: #fff; }
+.stat-lbl { font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* ── RIGHT FORM PANEL ── */
+.auth-right {
+  background: rgba(8, 10, 20, 0.85);
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  border-left: 1px solid rgba(59,130,246,0.15);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem 2.5rem;
+  overflow-y: auto;
+  position: relative;
+}
+
+.auth-right::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), rgba(139,92,246,0.5), transparent);
+}
+
+.form-header { margin-bottom: 2rem; }
+.form-title { font-size: 1.6rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+.form-subtitle { font-size: 0.88rem; color: rgba(255,255,255,0.45); }
+
+/* Pill tab switcher */
+.tab-pill {
+  position: relative;
+  display: flex;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 100px;
+  padding: 5px;
+  margin-bottom: 1.75rem;
+}
+
+.tab-indicator {
+  position: absolute;
+  top: 5px; left: 5px;
+  width: calc(50% - 5px);
+  height: calc(100% - 10px);
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 100px;
+  transition: left 0.4s cubic-bezier(0.22,1,0.36,1);
+  box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+}
+
+.tab-btn {
+  position: relative; z-index: 1;
+  flex: 1; padding: 0.65rem;
+  border: none; background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600; font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 0.3s;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.tab-btn.active { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+/* Inputs */
+.field { margin-bottom: 1.1rem; }
+.field-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+.field-wrap {
+  position: relative;
+  transition: filter 0.3s;
+}
+.field-wrap:focus-within {
+  filter: drop-shadow(0 0 10px rgba(59,130,246,0.4));
+}
+
+.field-icon {
+  position: absolute; left: 14px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem; pointer-events: none; z-index: 2;
+}
+
+.field-input {
+  width: 100%; padding: 0.75rem 2.8rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: 'Space Grotesk', sans-serif;
+  transition: border-color 0.3s, background 0.3s;
+  box-sizing: border-box;
+}
+.field-input:focus {
+  outline: none;
+  border-color: rgba(59,130,246,0.6);
+  background: rgba(59,130,246,0.06);
+}
+.field-input::placeholder { color: rgba(255,255,255,0.2); }
+
+.eye-btn {
+  position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer; font-size: 1rem; z-index: 2;
+  transition: color 0.2s;
+  padding: 0;
+}
+.eye-btn:hover { color: rgba(255,255,255,0.7); }
+
+/* Buttons */
+.auth-btn {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif;
+  transition: all 0.3s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 1.25rem;
+}
+
+.auth-btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 8px 25px rgba(59,130,246,0.35);
+}
+.auth-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(59,130,246,0.5);
+}
+.auth-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-btn-ghost {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  margin-top: 0.75rem;
+}
+.auth-btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(59,130,246,0.4); }
+
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 1rem 0;
+  color: rgba(255,255,255,0.2); font-size: 0.8rem;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1;
+  height: 1px; background: rgba(255,255,255,0.08);
+}
+
+/* Status box */
+.auth-status {
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  margin-bottom: 1rem;
+  display: none;
+}
+.auth-status.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; display: block; }
+.auth-status.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; display: block; }
+
+/* Demo creds */
+.demo-box {
+  background: rgba(139,92,246,0.06);
+  border: 1px dashed rgba(139,92,246,0.25);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin-top: 1.25rem;
+  font-size: 0.8rem;
+}
+.demo-title { color: #a78bfa; font-weight: 600; margin-bottom: 0.5rem; }
+.demo-row {
+  display: flex; justify-content: space-between; align-items: center;
+  color: rgba(255,255,255,0.45); padding: 3px 0;
+}
+.demo-row span { color: #fff; font-family: monospace; }
+.inject-btn {
+  background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.35);
+  color: #c4b5fd; border-radius: 5px;
+  padding: 2px 10px; font-size: 0.72rem;
+  cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  transition: all 0.2s;
+}
+.inject-btn:hover { background: rgba(139,92,246,0.4); }
+
+/* Spinner */
+.spin {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Parallax layers for cursor tracking */
+.parallax-layer {
+  position: fixed; inset: 0; pointer-events: none; z-index: 2;
+  transition: transform 0.1s linear;
+}
+</style>
+{% endblock %}
 
 {% block auth_content %}
-<div class="login-wrapper">
-  <!-- Interactive Fluid Cursor Blob -->
-  <div class="cursor-blob" id="cursorBlob"></div>
-  
-  <!-- Cyber Network Grid Background -->
-  <div class="cyber-grid"></div>
 
-  <div class="particles" id="particles"></div>
+<!-- Cursor-reactive parallax overlays -->
+<div class="parallax-layer" id="pl1"></div>
+<div class="parallax-layer" id="pl2"></div>
 
-  <div class="login-card" id="loginCard">
-    <div class="login-glow-orb"></div>
-    <div class="card-border-glow"></div>
+<div class="auth-split" id="authSplit">
 
-    <div class="login-logo">
-      <div class="login-logo-icon" id="logoIcon">🛡️</div>
-      <div class="login-title">SecurFund Ledger</div>
-      <div class="login-subtitle" style="letter-spacing: 0.05em; font-size: 0.8rem; text-transform: uppercase;">Transparent. Traceable. Tamper-Evident.</div>
-      <div style="display:flex; justify-content:center; gap:10px; margin-top: 10px; color: var(--accent); font-size: 0.75rem;">
-        <span><i class="icon" style="font-style: normal;">⛓</i> Encrypted Access Enabled</span>
+  <!-- ── LEFT PANEL ── -->
+  <div class="auth-left">
+    <div class="auth-left-overlay"></div>
+    <div class="auth-left-content">
+
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        Blockchain Security Layer Active
+      </div>
+
+      <h1 class="brand-title">SecurFund<br>Ledger</h1>
+
+      <p class="brand-tagline">
+        Transparent. Traceable. Tamper-Evident.<br>
+        Enterprise-grade Web3 security infrastructure for the decentralised economy.
+      </p>
+
+      <div class="brand-features">
+        <div class="brand-feature">
+          <div class="feature-icon">🛡️</div>
+          <span>End-to-end encrypted authentication layer</span>
+        </div>
+        <div class="brand-feature">
+          <div class="feature-icon">⛓</div>
+          <span>Immutable on-chain audit trail for every transaction</span>
+        </div>
+        <div class="brand-feature">
+          <div class="feature-icon">🔍</div>
+          <span>Real-time fraud detection & risk monitoring</span>
+        </div>
+        <div class="brand-feature">
+          <div class="feature-icon">🌐</div>
+          <span>MetaMask & hardware wallet support</span>
+        </div>
+      </div>
+
+      <div class="brand-stats">
+        <div class="stat-item">
+          <div class="stat-num">256-bit</div>
+          <div class="stat-lbl">Encryption</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">100%</div>
+          <div class="stat-lbl">On-Chain</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">0ms</div>
+          <div class="stat-lbl">Downtime SLA</div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- Sleek Pill Tab Switcher -->
-    <div style="position:relative; display:flex; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.08); border-radius:100px; padding:6px; margin-bottom:2rem; box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);">
-      <div id="tabIndicator" style="position:absolute; top:6px; left:6px; width:calc(50% - 6px); height:calc(100% - 12px); background:linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius:100px; transition:all 0.4s cubic-bezier(0.22, 1, 0.36, 1); z-index:0; box-shadow: 0 4px 15px rgba(59,130,246,0.5);"></div>
-      <button id="tabLogin" onclick="switchTab('login')" style="position:relative; z-index:1; flex:1; padding:0.75rem; border:none; background:transparent; color:#fff; font-weight:600; cursor:pointer; transition:color 0.3s; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Secure Login</button>
-      <button id="tabSignup" onclick="switchTab('signup')" style="position:relative; z-index:1; flex:1; padding:0.75rem; border:none; background:transparent; color:var(--text-secondary); font-weight:600; cursor:pointer; transition:color 0.3s;">Create Identity</button>
+  <!-- ── RIGHT FORM PANEL ── -->
+  <div class="auth-right" id="loginCard">
+    <div class="form-header">
+      <div class="form-title" id="formTitle">Welcome Back</div>
+      <div class="form-subtitle" id="formSubtitle">Authenticate your secure session</div>
     </div>
 
-    <div id="statusBox" class="status-box hidden mb-2"></div>
+    <div class="tab-pill">
+      <div class="tab-indicator" id="tabIndicator"></div>
+      <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Secure Login</button>
+      <button class="tab-btn" id="tabSignup" onclick="switchTab('signup')">Create Identity</button>
+    </div>
+
+    <div class="auth-status" id="statusBox"></div>
 
     <!-- LOGIN FORM -->
-    <form id="loginForm" autocomplete="on">
-      <div class="form-group">
-        <label class="form-label">Identity Hash (Username)</label>
-        <div class="input-wrapper">
-          <span class="input-icon">👤</span>
-          <input type="text" id="loginUsername" class="form-control form-control-icon premium-input" placeholder="Enter username" autocomplete="username" required>
+    <form id="loginForm">
+      <div class="field">
+        <label class="field-label">Identity Hash (Username)</label>
+        <div class="field-wrap">
+          <span class="field-icon">👤</span>
+          <input type="text" id="loginUsername" class="field-input" placeholder="Enter your username" autocomplete="username" required>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Encryption Key (Password)</label>
-        <div class="input-wrapper">
-          <span class="input-icon">🔒</span>
-          <input type="password" id="loginPassword" class="form-control form-control-icon premium-input" placeholder="Enter password" autocomplete="current-password" required>
-          <span class="toggle-password" onclick="togglePassword('loginPassword')">👁</span>
+      <div class="field">
+        <label class="field-label">Encryption Key (Password)</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input type="password" id="loginPassword" class="field-input" placeholder="Enter your password" autocomplete="current-password" required>
+          <button type="button" class="eye-btn" onclick="togglePwd('loginPassword')">👁</button>
         </div>
       </div>
-      <button type="submit" id="loginBtn" class="btn btn-primary btn-full login-btn-animated" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); border:none; margin-top: 1rem;">
-        <span id="loginSpinner" class="spinner hidden"></span>
+
+      <button type="submit" id="loginBtn" class="auth-btn auth-btn-primary">
+        <span id="loginSpinner" style="display:none;"><span class="spin"></span></span>
         <span id="loginText">Authenticate Session</span>
       </button>
-      
-      <div style="position: relative; text-align: center; margin: 1.5rem 0;">
-        <span style="background: rgba(13,15,26,1); padding: 0 10px; color: var(--text-muted); font-size: 0.8rem; position: relative; z-index: 2;">OR</span>
-        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.1); z-index: 1;"></div>
-      </div>
-      
-      <button type="button" onclick="alert('MetaMask Integration Ready')" class="btn btn-ghost btn-full" style="border: 1px solid rgba(59,130,246,0.5); color: #fff; background: rgba(59,130,246,0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" width="20" height="20" alt="MetaMask">
+
+      <div class="divider">OR</div>
+
+      <button type="button" class="auth-btn auth-btn-ghost" onclick="connectMetaMask()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" width="20" height="20">
         Connect Web3 Wallet
       </button>
     </form>
 
-    <!-- SIGNUP FORM (hidden initially) -->
-    <form id="signupForm" autocomplete="on" style="display:none;">
-      <div class="form-group">
-        <label class="form-label">Legal Entity Name</label>
-        <div class="input-wrapper">
-          <span class="input-icon">🪪</span>
-          <input type="text" id="signupName" class="form-control form-control-icon premium-input" placeholder="Your full name" required>
+    <!-- SIGNUP FORM -->
+    <form id="signupForm" style="display:none;">
+      <div class="field">
+        <label class="field-label">Legal Name</label>
+        <div class="field-wrap">
+          <span class="field-icon">🪪</span>
+          <input type="text" id="signupName" class="field-input" placeholder="Your full name" required>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Identity Hash (Username)</label>
-        <div class="input-wrapper">
-          <span class="input-icon">👤</span>
-          <input type="text" id="signupUsername" class="form-control form-control-icon premium-input" placeholder="Choose a username" required>
+      <div class="field">
+        <label class="field-label">Identity Hash (Username)</label>
+        <div class="field-wrap">
+          <span class="field-icon">👤</span>
+          <input type="text" id="signupUsername" class="field-input" placeholder="Choose a username" required>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Encryption Key (Password)</label>
-        <div class="input-wrapper">
-          <span class="input-icon">🔒</span>
-          <input type="password" id="signupPassword" class="form-control form-control-icon premium-input" placeholder="Min. 8 characters" required>
-          <span class="toggle-password" onclick="togglePassword('signupPassword')">👁</span>
+      <div class="field">
+        <label class="field-label">Encryption Key (Password)</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input type="password" id="signupPassword" class="field-input" placeholder="Min. 8 characters" required>
+          <button type="button" class="eye-btn" onclick="togglePwd('signupPassword')">👁</button>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Verify Encryption Key</label>
-        <div class="input-wrapper">
-          <span class="input-icon">🛡️</span>
-          <input type="password" id="signupConfirm" class="form-control form-control-icon premium-input" placeholder="Repeat password" required>
+      <div class="field">
+        <label class="field-label">Verify Encryption Key</label>
+        <div class="field-wrap">
+          <span class="field-icon">🛡️</span>
+          <input type="password" id="signupConfirm" class="field-input" placeholder="Repeat password" required>
         </div>
       </div>
-      <button type="submit" id="signupBtn" class="btn btn-primary btn-full login-btn-animated" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); border:none; margin-top: 1rem;">
-        <span id="signupSpinner" class="spinner hidden"></span>
-        <span id="signupText">Deploy Smart Contract Wallet</span>
+      <button type="submit" id="signupBtn" class="auth-btn auth-btn-primary">
+        <span id="signupSpinner" style="display:none;"><span class="spin"></span></span>
+        <span id="signupText">Deploy Secure Wallet</span>
       </button>
     </form>
 
-    <div id="demoCreds" class="demo-creds" style="border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.05);">
-      <div class="demo-creds-title" style="color: #a78bfa;">🔑 System Access Ports</div>
-      <div class="demo-cred-row">
-        Admin Node <span>admin / admin123</span>
-        <button class="quick-fill-btn" style="background: rgba(139,92,246,0.2); color:#ddd; border-color: rgba(139,92,246,0.4);" onclick="quickFill('admin','admin123')">Inject</button>
+    <div class="demo-box" id="demoCreds">
+      <div class="demo-title">🔑 System Access Ports</div>
+      <div class="demo-row">Admin Node <span>admin / admin123</span>
+        <button class="inject-btn" onclick="quickFill('admin','admin123')">Inject</button>
       </div>
-      <div class="demo-cred-row">
-        User Node <span>public / public123</span>
-        <button class="quick-fill-btn" style="background: rgba(139,92,246,0.2); color:#ddd; border-color: rgba(139,92,246,0.4);" onclick="quickFill('public','public123')">Inject</button>
+      <div class="demo-row">User Node <span>public / public123</span>
+        <button class="inject-btn" onclick="quickFill('public','public123')">Inject</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// Fluid Cursor Blob Tracker
-document.addEventListener('mousemove', (e) => {
-  const blob = document.getElementById('cursorBlob');
-  if (blob) {
-    blob.animate({
-      left: `${e.clientX}px`,
-      top: `${e.clientY}px`
-    }, { duration: 3000, fill: "forwards" });
+// ── Cursor-Reactive 3D Parallax ──────────────────────────────────────
+let mx = 0, my = 0;
+const W = () => window.innerWidth, H = () => window.innerHeight;
+
+document.addEventListener('mousemove', e => {
+  mx = (e.clientX / W() - 0.5) * 2;  // -1 to 1
+  my = (e.clientY / H() - 0.5) * 2;  // -1 to 1
+
+  // Parallax layers
+  document.getElementById('pl1').style.transform = `translate(${mx * -18}px, ${my * -18}px)`;
+  document.getElementById('pl2').style.transform = `translate(${mx * 10}px, ${my * 10}px)`;
+
+  // Move Three.js camera if available (hook into layout's three.js)
+  if (window.threeCamera) {
+    window.threeCamera.position.x += (mx * 3 - window.threeCamera.position.x) * 0.04;
+    window.threeCamera.position.y += (-my * 3 - window.threeCamera.position.y) * 0.04;
   }
+
+  // Also shift the left panel content slightly for depth feel
+  const lc = document.querySelector('.auth-left-content');
+  if (lc) lc.style.transform = `translate(${mx * 8}px, ${my * 5}px)`;
 });
 
-// Show/Hide Password Toggle
-function togglePassword(inputId) {
-  const input = document.getElementById(inputId);
-  if (input.type === "password") {
-    input.type = "text";
-  } else {
-    input.type = "password";
-  }
-}
-
+// ── Tab Switching ────────────────────────────────────────────────────
+let currentTab = 'login';
 function switchTab(tab) {
-  const loginForm = document.getElementById('loginForm');
-  const signupForm = document.getElementById('signupForm');
-  const tabLogin = document.getElementById('tabLogin');
-  const tabSignup = document.getElementById('tabSignup');
-  const demoCreds = document.getElementById('demoCreds');
-  const indicator = document.getElementById('tabIndicator');
+  currentTab = tab;
+  document.getElementById('loginForm').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('signupForm').style.display = tab === 'signup' ? '' : 'none';
+  document.getElementById('demoCreds').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('statusBox').className = 'auth-status';
+
+  const ind = document.getElementById('tabIndicator');
+  ind.style.left = tab === 'login' ? '5px' : 'calc(50%)';
+
+  document.getElementById('tabLogin').className = 'tab-btn' + (tab === 'login' ? ' active' : '');
+  document.getElementById('tabSignup').className = 'tab-btn' + (tab === 'signup' ? ' active' : '');
+
+  document.getElementById('formTitle').textContent = tab === 'login' ? 'Welcome Back' : 'Create Account';
+  document.getElementById('formSubtitle').textContent = tab === 'login' ? 'Authenticate your secure session' : 'Deploy your smart contract wallet';
+
+  // Animate card scale
   const card = document.getElementById('loginCard');
-  
-  document.getElementById('statusBox').className = 'status-box hidden mb-2';
-
-  // Smooth form transition
-  card.style.transform = 'scale(0.98)';
-  setTimeout(() => card.style.transform = 'scale(1)', 200);
-
-  if (tab === 'login') {
-    loginForm.style.display = '';
-    signupForm.style.display = 'none';
-    demoCreds.style.display = '';
-    
-    indicator.style.left = '6px';
-    tabLogin.style.color = '#fff';
-    tabLogin.style.textShadow = '0 1px 2px rgba(0,0,0,0.5)';
-    tabSignup.style.color = 'var(--text-secondary)';
-    tabSignup.style.textShadow = 'none';
-  } else {
-    loginForm.style.display = 'none';
-    signupForm.style.display = '';
-    demoCreds.style.display = 'none';
-    
-    indicator.style.left = 'calc(50%)';
-    tabSignup.style.color = '#fff';
-    tabSignup.style.textShadow = '0 1px 2px rgba(0,0,0,0.5)';
-    tabLogin.style.color = 'var(--text-secondary)';
-    tabLogin.style.textShadow = 'none';
-  }
+  card.style.transform = 'scaleY(0.97)';
+  setTimeout(() => card.style.transform = 'scaleY(1)', 200);
 }
 
+// ── Password Toggle ──────────────────────────────────────────────────
+function togglePwd(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+// ── Quick Fill ───────────────────────────────────────────────────────
 function quickFill(u, p) {
+  let i = 0, j = 0;
   const uEl = document.getElementById('loginUsername');
   const pEl = document.getElementById('loginPassword');
   uEl.value = ''; pEl.value = '';
-  let i = 0;
-  const typeU = setInterval(() => { uEl.value += u[i++]; if (i >= u.length) { clearInterval(typeU); let j = 0; const typeP = setInterval(() => { pEl.value += p[j++]; if (j >= p.length) clearInterval(typeP); }, 60); } }, 60);
+  const tU = setInterval(() => { uEl.value += u[i++]; if (i >= u.length) { clearInterval(tU); const tP = setInterval(() => { pEl.value += p[j++]; if (j >= p.length) clearInterval(tP); }, 50); } }, 50);
 }
 
-(function spawnParticles() {
-  const container = document.getElementById('particles');
-  for (let i = 0; i < 40; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    p.style.cssText = `left:${Math.random()*100}%;width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;animation-duration:${5+Math.random()*10}s;animation-delay:${-Math.random()*10}s;opacity:${0.1+Math.random()*0.4};`;
-    container.appendChild(p);
-  }
-})();
+// ── MetaMask ─────────────────────────────────────────────────────────
+async function connectMetaMask() {
+  if (!window.ethereum) { showStatus('MetaMask not installed. Please install the browser extension.', 'error'); return; }
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    showStatus('✓ Wallet connected: ' + accounts[0].slice(0,8) + '...' + accounts[0].slice(-4), 'success');
+  } catch(e) { showStatus('Wallet connection rejected.', 'error'); }
+}
 
-async function handleAuth(url, payload, btnId, spinnerId, textId, successText) {
+// ── Status Helper ────────────────────────────────────────────────────
+function showStatus(msg, type) {
+  const box = document.getElementById('statusBox');
+  box.textContent = msg;
+  box.className = 'auth-status ' + type;
+}
+
+// ── Auth Handlers ────────────────────────────────────────────────────
+async function handleAuth(url, payload, btnId, spinnerId, textId) {
   const btn = document.getElementById(btnId);
   const spinner = document.getElementById(spinnerId);
   const txt = document.getElementById(textId);
-  const statusBox = document.getElementById('statusBox');
-  const card = document.getElementById('loginCard');
-
   btn.disabled = true;
-  spinner.classList.remove('hidden');
-  txt.textContent = 'Decrypting...';
-
+  spinner.style.display = '';
+  txt.textContent = 'Verifying...';
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await res.json();
-
     if (data.redirect) {
-      txt.textContent = '✓ ' + successText;
+      txt.textContent = '✓ Access Granted';
       btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-      spinner.classList.add('hidden');
-      card.classList.add('login-success-pulse');
-      document.getElementById('logoIcon').classList.add('logo-launch');
-      setTimeout(() => { triggerTransition(() => { window.location.href = data.redirect; }); }, 350);
-      setTimeout(() => { card.classList.add('card-launch'); }, 380);
+      spinner.style.display = 'none';
+      if (typeof triggerTransition === 'function') triggerTransition(() => { window.location.href = data.redirect; });
+      else window.location.href = data.redirect;
     } else {
-      card.classList.add('card-shake');
-      setTimeout(() => card.classList.remove('card-shake'), 600);
-      statusBox.className = 'status-box error mb-2';
-      statusBox.textContent = '❌ ' + data.error;
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-      txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Smart Contract Wallet';
+      showStatus('❌ ' + data.error, 'error');
+      btn.disabled = false; spinner.style.display = 'none';
+      txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Secure Wallet';
     }
   } catch(e) {
-    statusBox.className = 'status-box error mb-2';
-    statusBox.textContent = '❌ Network connection failed.';
-    btn.disabled = false;
-    spinner.classList.add('hidden');
-    txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Smart Contract Wallet';
+    showStatus('❌ Network error. Try again.', 'error');
+    btn.disabled = false; spinner.style.display = 'none';
+    txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Secure Wallet';
   }
 }
 
-document.getElementById('loginForm').addEventListener('submit', (e) => {
+document.getElementById('loginForm').addEventListener('submit', e => {
   e.preventDefault();
-  handleAuth('/api/auth', {
-    username: document.getElementById('loginUsername').value,
-    password: document.getElementById('loginPassword').value
-  }, 'loginBtn', 'loginSpinner', 'loginText', 'Access Granted');
+  handleAuth('/api/auth', { username: document.getElementById('loginUsername').value, password: document.getElementById('loginPassword').value }, 'loginBtn', 'loginSpinner', 'loginText');
 });
 
-document.getElementById('signupForm').addEventListener('submit', (e) => {
+document.getElementById('signupForm').addEventListener('submit', e => {
   e.preventDefault();
   const pwd = document.getElementById('signupPassword').value;
-  const confirm = document.getElementById('signupConfirm').value;
-  if (pwd !== confirm) {
-    document.getElementById('statusBox').className = 'status-box error mb-2';
-    document.getElementById('statusBox').textContent = '❌ Encryption Keys (Passwords) do not match.';
-    document.getElementById('statusBox').classList.remove('hidden');
-    return;
-  }
-  handleAuth('/api/register', {
-    real_name: document.getElementById('signupName').value,
-    username: document.getElementById('signupUsername').value,
-    password: pwd
-  }, 'signupBtn', 'signupSpinner', 'signupText', 'Wallet Deployed');
-});
-
-// Focus glow effect for inputs
-document.querySelectorAll('.premium-input').forEach(input => {
-  input.addEventListener('focus', () => {
-    input.parentElement.classList.add('input-focused');
-  });
-  input.addEventListener('blur', () => {
-    input.parentElement.classList.remove('input-focused');
-  });
+  const cnf = document.getElementById('signupConfirm').value;
+  if (pwd !== cnf) { showStatus('❌ Encryption keys do not match.', 'error'); return; }
+  handleAuth('/api/register', { real_name: document.getElementById('signupName').value, username: document.getElementById('signupUsername').value, password: pwd }, 'signupBtn', 'signupSpinner', 'signupText');
 });
 </script>
 {% endblock %}
