@@ -384,7 +384,7 @@ const externalAddress = "{{ external_wallet if external_wallet and external_wall
 const privateKey = "{{ private_key if private_key and private_key != 'None' else '' }}";
 
 const isExternal = externalAddress.length > 0;
-const currentAsset = 'ETH'; // Only ETH supported for real transactions
+let currentAsset = 'ETH'; 
 let marketChart = null;
 
 const ASSETS = [
@@ -407,6 +407,8 @@ function updateDots() {
     d.style.transform = i === currentAssetIdx ? 'scale(1.4)' : 'scale(1)';
   });
   const asset = ASSETS[currentAssetIdx];
+  currentAsset = asset.id; // UPDATE THE CURRENT ASSET
+
   // Update coin label inside card
   const el = document.getElementById('cardAssetName');
   if (el) el.textContent = asset.name + ' (' + asset.id + ')';
@@ -651,7 +653,7 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
         }
         txHash = await window.ethereum.request({
           method: 'eth_sendTransaction',
-          params: [{ from: externalAddress, to: receiver, value: ethers.parseEther(amount).toString(16) }]
+          params: [{ from: externalAddress, to: receiver, value: '0x' + ethers.parseEther(amount).toString(16) }]
         });
       } else {
         if (!signer) throw new Error("Internal signer not initialized.");
