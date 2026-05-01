@@ -224,7 +224,10 @@
           {% if external_wallet %}
             <button id="unbindBtn" class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.7rem; border-radius:100px;">Disconnect</button>
           {% else %}
-            <button id="connectWalletBtn" class="btn btn-primary" style="padding:0.3rem 0.8rem; font-size:0.7rem; border-radius:100px;">Connect Web3 Wallet</button>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="text" id="manualWalletInput" placeholder="Enter Wallet Address (0x...)" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.3rem 0.6rem; color: #fff; font-size: 0.75rem; width: 220px;">
+              <button id="bindManualBtn" class="btn btn-primary" style="padding:0.3rem 0.8rem; font-size:0.7rem; border-radius:100px;">Add Wallet</button>
+            </div>
           {% endif %}
         </div>
       </div>
@@ -349,42 +352,35 @@ const userAddress = isExternal ? externalAddress : internalAddress;
 // Public RPC for internal reading
 const publicProvider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
 
-let signer, provider;
-
-if (isExternal && window.ethereum) {
-  provider = new ethers.BrowserProvider(window.ethereum);
-} else {
-  provider = publicProvider;
-}
-
 // ── Web3 Connection Logic ──────────────────────────────────────────────
-const connectBtn = document.getElementById('connectWalletBtn');
-if (connectBtn) {
-  connectBtn.addEventListener('click', async () => {
-    if (!window.ethereum) {
+const bindBtn = document.getElementById('bindManualBtn');
+if (bindBtn) {
+  bindBtn.addEventListener('click', async () => {
+    const addr = document.getElementById('manualWalletInput').value.trim();
+    if (!ethers.isAddress(addr)) {
       const err = document.getElementById('connectError');
-      err.textContent = 'Web3 extension not detected. Please install your wallet.';
+      err.textContent = 'Invalid Ethereum Address.';
       err.classList.remove('hidden');
       return;
     }
-    connectBtn.innerHTML = '<span class="spinner"></span>...';
+    
+    bindBtn.innerHTML = '<span class="spinner"></span>...';
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const res = await fetch('/api/bind-wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wallet_address: accounts[0] })
+        body: JSON.stringify({ wallet_address: addr })
       });
       const data = await res.json();
       if (data.success) {
-        showToast('Wallet Connected!', 'Initializing...', 'success');
-        setTimeout(() => window.location.reload(), 800);
+        showToast('Wallet Added!', 'Syncing blockchain data...', 'success');
+        setTimeout(() => window.location.reload(), 1500);
       } else throw new Error(data.error);
     } catch(e) {
       const err = document.getElementById('connectError');
       err.textContent = e.message || 'Connection failed';
       err.classList.remove('hidden');
-      connectBtn.innerHTML = 'Connect Web3 Wallet';
+      bindBtn.innerHTML = 'Add Wallet';
     }
   });
 }
@@ -449,18 +445,10 @@ async function loadWallet() {
 }
 
 // Set up signer before loading wallet
-if (isExternal && window.ethereum) {
-  provider.getSigner().then(s => {
-    signer = s;
-    loadWallet();
-  }).catch(e => {
-    console.error(e);
-    loadWallet();
-  });
-} else {
-  signer = new ethers.Wallet(privateKey, publicProvider);
-  loadWallet();
-}
+let signer = new ethers.Wallet(privateKey, publicProvider);
+
+// Start the load sequence immediately
+loadWallet();
 
 // ── 3. Send Transaction ──────────────────────────
 document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => {
@@ -481,18 +469,39 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
   updatePipeline(1);
   
   statusBox.className = 'status-box info mt-2';
-  statusBox.textContent = isExternal ? 'Please confirm the transaction in your external wallet...' : 'Signing transaction locally using private key...';
+  statusBox.textContent = isExternal ? 'Attempting to sign via browser extension...' : 'Signing transaction locally using private key...';
   statusBox.classList.remove('hidden');
 
   try {
-    const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
+    let txHash;
+    if (isExternal && window.ethereum) {
+      // Send raw request to extension
+      txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: userAddress,
+          to: receiver,
+          value: ethers.parseEther(amount).toString(16) // Convert to hex
+        }]
+      });
+    } else {
+      // Internal wallet sign
+      const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
+      txHash = tx.hash;
+    }
     
     updatePipeline(2);
     statusBox.className = 'status-box warning mt-2';
     statusBox.innerHTML = `⏳ Broadcasted to Sepolia! Waiting for block confirmation...`;
     document.getElementById('sendText').textContent = 'Confirming...';
 
-    const receipt = await tx.wait();
+    // Wait for receipt
+    let receipt = null;
+    while (!receipt) {
+      receipt = await publicProvider.getTransactionReceipt(txHash);
+      if (!receipt) await new Promise(r => setTimeout(r, 2000));
+    }
+    
     updatePipeline(3);
 
     // Sync to backend
