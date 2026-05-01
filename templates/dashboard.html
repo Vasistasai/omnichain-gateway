@@ -597,6 +597,7 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
 
   try {
     let txHash;
+    let receipt = null;
     if (currentAsset !== 'ETH') {
       // Mock omnichain transaction for hackathon
       await new Promise(r => setTimeout(r, 1500));
@@ -638,7 +639,6 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
       statusBox.innerHTML = `⏳ Broadcasted to Sepolia! Waiting for block confirmation...`;
       document.getElementById('sendText').textContent = 'Confirming...';
 
-      let receipt = null;
       while (!receipt) {
         receipt = await publicProvider.getTransactionReceipt(txHash);
         if (!receipt) await new Promise(r => setTimeout(r, 2000));
@@ -647,15 +647,17 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
     
     updatePipeline(3);
 
-    // Sync to backend
-    await fetch('/api/sync-tx', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tx_hash: tx.hash, amount_eth: amount, sender_address: userAddress, receiver_address: receiver,
-        block_number: receipt.blockNumber, gas_used: receipt.gasUsed?.toString()
-      })
-    });
+    // Sync to backend ONLY for real ETH transactions (mock txs are saved by backend automatically)
+    if (currentAsset === 'ETH') {
+      await fetch('/api/sync-tx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tx_hash: txHash, amount_eth: amount, sender_address: isExternal ? externalAddress : internalAddress, receiver_address: receiver,
+          block_number: receipt.blockNumber, gas_used: receipt.gasUsed?.toString()
+        })
+      });
+    }
 
     updatePipeline(4);
     statusBox.className = 'status-box success mt-2';
