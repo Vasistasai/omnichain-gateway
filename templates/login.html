@@ -315,10 +315,137 @@ body { overflow: hidden; }
   position: fixed; inset: 0; pointer-events: none; z-index: 2;
   transition: transform 0.1s linear;
 }
+
+/* ── Custom Cursor ── */
+* { cursor: none !important; }
+#cursor-ring {
+  position: fixed; pointer-events: none; z-index: 99999;
+  width: 36px; height: 36px;
+  border: 2px solid rgba(59,130,246,0.8);
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
+  transition: width 0.2s, height 0.2s, border-color 0.2s, background 0.2s;
+  mix-blend-mode: screen;
+}
+#cursor-dot {
+  position: fixed; pointer-events: none; z-index: 99999;
+  width: 6px; height: 6px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
+  transition: transform 0.1s;
+}
+#cursor-ring.hovering {
+  width: 54px; height: 54px;
+  border-color: rgba(139,92,246,0.9);
+  background: rgba(139,92,246,0.07);
+}
+
+/* ── Click Ripple ── */
+.ripple {
+  position: fixed; pointer-events: none; z-index: 9999;
+  border-radius: 50%;
+  border: 1.5px solid rgba(59,130,246,0.8);
+  transform: translate(-50%,-50%) scale(0);
+  animation: rippleOut 0.7s ease-out forwards;
+}
+@keyframes rippleOut {
+  to { transform: translate(-50%,-50%) scale(6); opacity: 0; }
+}
+
+/* ── Glitch Title ── */
+.glitch {
+  position: relative;
+}
+.glitch::before, .glitch::after {
+  content: attr(data-text);
+  position: absolute; top: 0; left: 0;
+  background: linear-gradient(135deg, #fff 30%, #93c5fd 65%, #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  width: 100%;
+}
+.glitch::before {
+  animation: glitch1 4s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+}
+.glitch::after {
+  animation: glitch2 4s infinite;
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+}
+@keyframes glitch1 {
+  0%,90%,100% { transform: none; opacity: 0; }
+  92% { transform: translate(-3px, 1px); opacity: 0.8; }
+  94% { transform: translate(3px, -1px); opacity: 0.8; }
+  96% { transform: none; opacity: 0; }
+}
+@keyframes glitch2 {
+  0%,90%,100% { transform: none; opacity: 0; }
+  93% { transform: translate(3px, 2px); opacity: 0.6; }
+  95% { transform: translate(-3px, -2px); opacity: 0.6; }
+  97% { transform: none; opacity: 0; }
+}
+
+/* ── Network Canvas (left panel) ── */
+#net-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 1; pointer-events: none; opacity: 0.45;
+}
+
+/* ── Scan Line Sweep ── */
+.auth-right::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.6), transparent);
+  animation: scanLine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes scanLine {
+  0%   { top: 0%; opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ── Magnetic Button ── */
+.auth-btn { transform-style: preserve-3d; will-change: transform; }
+
+/* ── Trailing cursor dots ── */
+.trail-dot {
+  position: fixed; pointer-events: none; z-index: 9998;
+  width: 5px; height: 5px;
+  background: rgba(59,130,246,0.6);
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
+  transition: opacity 0.5s;
+}
+
+/* ── Animated border glow on right panel ── */
+@keyframes borderPulse {
+  0%,100% { box-shadow: inset 0 0 30px rgba(59,130,246,0.05), 0 0 60px rgba(59,130,246,0.03); }
+  50% { box-shadow: inset 0 0 50px rgba(139,92,246,0.12), 0 0 80px rgba(139,92,246,0.08); }
+}
+.auth-right { animation: borderPulse 4s ease-in-out infinite; }
+
+/* ── Typing cursor ── */
+.typing-cursor {
+  display: inline-block;
+  width: 2px; height: 1em;
+  background: #93c5fd;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  animation: blinkCursor 1s step-end infinite;
+}
+@keyframes blinkCursor { 0%,100%{opacity:1;} 50%{opacity:0;} }
 </style>
 {% endblock %}
 
 {% block auth_content %}
+
+<!-- Custom Cursor -->
+<div id="cursor-ring"></div>
+<div id="cursor-dot"></div>
 
 <!-- Cursor-reactive parallax overlays -->
 <div class="parallax-layer" id="pl1"></div>
@@ -328,6 +455,8 @@ body { overflow: hidden; }
 
   <!-- ── LEFT PANEL ── -->
   <div class="auth-left">
+    <!-- Animated network node canvas -->
+    <canvas id="net-canvas"></canvas>
     <div class="auth-left-overlay"></div>
     <div class="auth-left-content">
 
@@ -336,7 +465,7 @@ body { overflow: hidden; }
         Blockchain Security Layer Active
       </div>
 
-      <h1 class="brand-title">SecurFund<br>Ledger</h1>
+      <h1 class="brand-title glitch" data-text="SecurFund&#10;Ledger">SecurFund<br>Ledger</h1>
 
       <p class="brand-tagline">
         Transparent. Traceable. Tamper-Evident.<br>
@@ -594,5 +723,160 @@ document.getElementById('signupForm').addEventListener('submit', e => {
   if (pwd !== cnf) { showStatus('❌ Encryption keys do not match.', 'error'); return; }
   handleAuth('/api/register', { real_name: document.getElementById('signupName').value, username: document.getElementById('signupUsername').value, password: pwd }, 'signupBtn', 'signupSpinner', 'signupText');
 });
+
+// ── 1. Custom Dual-Ring Cursor ───────────────────────────────────────
+const ring = document.getElementById('cursor-ring');
+const dot  = document.getElementById('cursor-dot');
+let cx = 0, cy = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => {
+  cx = e.clientX; cy = e.clientY;
+  dot.style.left = cx + 'px'; dot.style.top = cy + 'px';
+});
+(function animCursor() {
+  rx += (cx - rx) * 0.12;
+  ry += (cy - ry) * 0.12;
+  ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  requestAnimationFrame(animCursor);
+})();
+document.querySelectorAll('a,button,input,.inject-btn').forEach(el => {
+  el.addEventListener('mouseenter', () => ring.classList.add('hovering'));
+  el.addEventListener('mouseleave', () => ring.classList.remove('hovering'));
+});
+
+// ── 2. Click Ripple Effect ───────────────────────────────────────────
+document.addEventListener('click', e => {
+  const r = document.createElement('div');
+  r.className = 'ripple';
+  r.style.cssText = `left:${e.clientX}px;top:${e.clientY}px;width:30px;height:30px;`;
+  document.body.appendChild(r);
+  setTimeout(() => r.remove(), 800);
+});
+
+// ── 3. Cursor Trail Dots ─────────────────────────────────────────────
+const TRAIL = 10;
+const trailDots = Array.from({length: TRAIL}, (_, i) => {
+  const d = document.createElement('div');
+  d.className = 'trail-dot';
+  d.style.opacity = (1 - i / TRAIL) * 0.6;
+  d.style.width = d.style.height = (5 - i * 0.3) + 'px';
+  document.body.appendChild(d);
+  return d;
+});
+let trailPos = Array(TRAIL).fill({x: 0, y: 0});
+document.addEventListener('mousemove', e => { trailPos.unshift({x: e.clientX, y: e.clientY}); trailPos = trailPos.slice(0, TRAIL); });
+(function animTrail() {
+  trailDots.forEach((d, i) => { if (trailPos[i]) { d.style.left = trailPos[i].x + 'px'; d.style.top = trailPos[i].y + 'px'; } });
+  requestAnimationFrame(animTrail);
+})();
+
+// ── 4. Animated Network Node Canvas (Left Panel) ─────────────────────
+(function initNetCanvas() {
+  const canvas = document.getElementById('net-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let nodes = [];
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  for (let i = 0; i < 40; i++) {
+    nodes.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      r: 2 + Math.random() * 2
+    });
+  }
+  function drawNet() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    nodes.forEach(n => {
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+      if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+    });
+    // Lines
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 140) {
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.strokeStyle = `rgba(59,130,246,${0.5 * (1 - dist/140)})`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+        }
+      }
+    }
+    // Dots
+    nodes.forEach(n => {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(147,197,253,0.8)';
+      ctx.fill();
+    });
+    requestAnimationFrame(drawNet);
+  }
+  drawNet();
+})();
+
+// ── 5. Magnetic Button Effect ────────────────────────────────────────
+document.querySelectorAll('.auth-btn-primary').forEach(btn => {
+  btn.addEventListener('mousemove', e => {
+    const r = btn.getBoundingClientRect();
+    const bx = e.clientX - r.left - r.width / 2;
+    const by = e.clientY - r.top - r.height / 2;
+    btn.style.transform = `translate(${bx * 0.18}px, ${by * 0.18}px) scale(1.03)`;
+  });
+  btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+});
+
+// ── 6. Count-Up Stats ────────────────────────────────────────────────
+(function countUp() {
+  const els = document.querySelectorAll('.stat-num[data-target]');
+  els.forEach(el => {
+    const target = parseInt(el.dataset.target);
+    const suffix = el.dataset.suffix || '';
+    let cur = 0;
+    const step = Math.ceil(target / 60);
+    const t = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      el.textContent = cur + suffix;
+      if (cur >= target) clearInterval(t);
+    }, 25);
+  });
+})();
+
+// ── 7. Typing Tagline ────────────────────────────────────────────────
+(function typeTagline() {
+  const el = document.querySelector('.brand-tagline');
+  if (!el) return;
+  const lines = [
+    'Transparent. Traceable. Tamper-Evident.',
+    'Enterprise-grade Web3 security infrastructure\nfor the decentralised economy.'
+  ];
+  const full = lines[0];
+  el.textContent = '';
+  const cur = document.createElement('span');
+  cur.className = 'typing-cursor';
+  el.appendChild(cur);
+  let i = 0;
+  const t = setInterval(() => {
+    if (i < full.length) {
+      cur.insertAdjacentText('beforebegin', full[i++]);
+    } else {
+      clearInterval(t);
+      setTimeout(() => {
+        el.innerHTML = full + '<br>' +
+          'Enterprise-grade Web3 security infrastructure for the decentralised economy.';
+      }, 400);
+    }
+  }, 35);
+})();
 </script>
 {% endblock %}
