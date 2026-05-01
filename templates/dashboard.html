@@ -414,7 +414,8 @@ function updatePipeline(step) {
 // ── 2. Load Wallet Balance ─────────────────────────────────────────────
 async function loadWallet() {
   try {
-    const balance = await provider.getBalance(userAddress);
+    // ALWAYS use publicProvider to guarantee we read from Sepolia, regardless of external wallet's active network
+    const balance = await publicProvider.getBalance(userAddress);
     const balEth = parseFloat(ethers.formatEther(balance));
     document.getElementById('walletBalance').textContent = balEth.toFixed(4) + ' ETH';
     
@@ -434,7 +435,7 @@ async function loadWallet() {
         return;
       }
       try {
-        const feeData = await provider.getFeeData();
+        const feeData = await publicProvider.getFeeData();
         const gasCostEth = parseFloat(ethers.formatEther(21000n * feeData.gasPrice));
         document.getElementById('gasValue').textContent = gasCostEth.toFixed(6) + ' ETH';
         document.getElementById('totalCost').textContent = (parseFloat(amount) + gasCostEth).toFixed(6) + ' ETH';
