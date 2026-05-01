@@ -7,6 +7,17 @@ app.secret_key = "omnichain_web3_secret_2024"
 
 if not os.path.exists('real_crypto.db'):
     init_db()
+else:
+    # Safely migrate DB to include email if missing
+    import sqlite3
+    try:
+        conn = get_db_connection()
+        conn.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        conn.commit()
+        conn.close()
+    except sqlite3.OperationalError:
+        pass # Column already exists
+
 
 # ─── Fraud Detection Engine ───────────────────────────────────────────────────
 def calculate_risk(amount_eth, receiver_address, user_id):
@@ -108,11 +119,12 @@ def auth():
 def register():
     data = request.json
     username = data.get('username', '').strip()
+    email = data.get('email', '').strip()
     password = data.get('password', '').strip()
     real_name = data.get('real_name', '').strip()
     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
 
-    if not username or not password or not real_name:
+    if not username or not password or not real_name or not email:
         return jsonify({"error": "All fields required"}), 400
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
@@ -122,14 +134,14 @@ def register():
     new_account = Account.create(secrets.token_hex(32))
 
     conn = get_db_connection()
-    existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+    existing = conn.execute('SELECT id FROM users WHERE username = ? OR email = ?', (username, email)).fetchone()
     if existing:
         conn.close()
-        return jsonify({"error": "Username already taken"}), 409
+        return jsonify({"error": "Username or Email already taken"}), 409
 
     conn.execute(
-        'INSERT INTO users (real_name, username, password, role, wallet_address, private_key, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        (real_name, username, password, 'User', new_account.address, new_account.key.hex(), ip_address)
+        'INSERT INTO users (real_name, username, email, password, role, wallet_address, private_key, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        (real_name, username, email, password, 'User', new_account.address, new_account.key.hex(), ip_address)
     )
     conn.commit()
     user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
@@ -140,6 +152,50 @@ def register():
     session['private_key'] = user['private_key']
     conn.close()
     return jsonify({"redirect": url_for('user_dashboard')})
+
+# ─── Password Reset Engine ────────────────────────────────────────────────────
+OTP_STORE = {}
+
+@app.route('/api/forgot_password', methods=['POST'])
+def forgot_password():
+    email = request.json.get('email', '').strip()
+    if not email: return jsonify({"error": "Email is required"}), 400
+    
+    conn = get_db_connection()
+    user = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({"error": "Email not found"}), 404
+        
+    import random
+    otp = str(random.randint(100000, 999999))
+    OTP_STORE[email] = otp
+    
+    # In a real app we would send an email here. For hackathon, we simulate it.
+    print(f"\n[MOCK EMAIL SERVER] To: {email} | OTP: {otp}\n")
+    return jsonify({"success": True, "message": "OTP sent to email"})
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    data = request.json
+    email = data.get('email', '').strip()
+    otp = data.get('otp', '').strip()
+    new_password = data.get('new_password', '').strip()
+    
+    if not email or not otp or not new_password:
+        return jsonify({"error": "All fields required"}), 400
+        
+    if OTP_STORE.get(email) != otp:
+        return jsonify({"error": "Invalid or expired OTP"}), 401
+        
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET password = ? WHERE email = ?', (new_password, email))
+    conn.commit()
+    conn.close()
+    
+    del OTP_STORE[email]
+    return jsonify({"success": True})
 
 @app.route('/api/bind-wallet', methods=['POST'])
 def bind_wallet():

@@ -542,6 +542,10 @@ body { overflow: hidden; }
         </div>
       </div>
 
+      <div style="text-align: right; margin-top: -0.5rem; margin-bottom: 1.5rem;">
+        <a href="#" onclick="switchTab('forgot')" style="color: rgba(147,197,253,0.8); font-size: 0.75rem; text-decoration: none; transition: color 0.3s;">Forgot Encryption Key?</a>
+      </div>
+
       <button type="submit" id="loginBtn" class="auth-btn auth-btn-primary">
         <span id="loginSpinner" style="display:none;"><span class="spin"></span></span>
         <span id="loginText">Authenticate Session</span>
@@ -562,6 +566,13 @@ body { overflow: hidden; }
         <div class="field-wrap">
           <span class="field-icon">🪪</span>
           <input type="text" id="signupName" class="field-input" placeholder="Your full name" required>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Recovery Email</label>
+        <div class="field-wrap">
+          <span class="field-icon">📧</span>
+          <input type="email" id="signupEmail" class="field-input" placeholder="For password recovery" required>
         </div>
       </div>
       <div class="field">
@@ -590,6 +601,52 @@ body { overflow: hidden; }
         <span id="signupSpinner" style="display:none;"><span class="spin"></span></span>
         <span id="signupText">Deploy Secure Wallet</span>
       </button>
+    </form>
+
+    <!-- FORGOT PASSWORD FORM -->
+    <form id="forgotForm" style="display:none;">
+      <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 1.5rem;">Enter your recovery email to receive a secure OTP for password reset.</p>
+      <div class="field">
+        <label class="field-label">Recovery Email</label>
+        <div class="field-wrap">
+          <span class="field-icon">📧</span>
+          <input type="email" id="forgotEmail" class="field-input" placeholder="Your registered email" required>
+        </div>
+      </div>
+      <button type="submit" id="forgotBtn" class="auth-btn auth-btn-primary">
+        <span id="forgotSpinner" style="display:none;"><span class="spin"></span></span>
+        <span id="forgotText">Send Recovery OTP</span>
+      </button>
+      <div style="text-align: center; margin-top: 1rem;">
+        <a href="#" onclick="switchTab('login')" style="color: rgba(255,255,255,0.4); font-size: 0.75rem; text-decoration: none; transition: color 0.3s;">← Back to Login</a>
+      </div>
+    </form>
+
+    <!-- RESET PASSWORD FORM -->
+    <form id="resetForm" style="display:none;">
+      <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 1.5rem;">Enter the OTP sent to your email and set your new encryption key.</p>
+      <div class="field">
+        <label class="field-label">Security OTP</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔢</span>
+          <input type="text" id="resetOtp" class="field-input" placeholder="6-digit OTP" required>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">New Encryption Key</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input type="password" id="resetPassword" class="field-input" placeholder="Min. 8 characters" required>
+          <button type="button" class="eye-btn" onclick="togglePwd('resetPassword')">👁</button>
+        </div>
+      </div>
+      <button type="submit" id="resetBtn" class="auth-btn auth-btn-primary">
+        <span id="resetSpinner" style="display:none;"><span class="spin"></span></span>
+        <span id="resetText">Update Encryption Key</span>
+      </button>
+      <div style="text-align: center; margin-top: 1rem;">
+        <a href="#" onclick="switchTab('login')" style="color: rgba(255,255,255,0.4); font-size: 0.75rem; text-decoration: none; transition: color 0.3s;">Cancel</a>
+      </div>
     </form>
 
     <div class="demo-box" id="demoCreds">
@@ -636,38 +693,54 @@ function switchTab(tab) {
   
   const loginF = document.getElementById('loginForm');
   const signupF = document.getElementById('signupForm');
+  const forgotF = document.getElementById('forgotForm');
+  const resetF = document.getElementById('resetForm');
   const demoC = document.getElementById('demoCreds');
+  const tabPill = document.querySelector('.tab-pill');
+  
+  const forms = [loginF, signupF, forgotF, resetF];
   
   // Smooth fade out
-  loginF.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-  signupF.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+  forms.forEach(f => { if(f) f.style.transition = 'opacity 0.2s ease, transform 0.2s ease'; });
   if (demoC) demoC.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+  if (tabPill) tabPill.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
   
-  loginF.style.opacity = '0';
-  loginF.style.transform = 'translateY(5px)';
-  signupF.style.opacity = '0';
-  signupF.style.transform = 'translateY(5px)';
+  forms.forEach(f => { if(f) { f.style.opacity = '0'; f.style.transform = 'translateY(5px)'; }});
+  
   if (demoC) {
     demoC.style.opacity = '0';
     demoC.style.transform = 'translateY(5px)';
   }
+  if (tabPill && (tab === 'forgot' || tab === 'reset')) {
+    tabPill.style.opacity = '0';
+    tabPill.style.transform = 'translateY(5px)';
+    tabPill.style.pointerEvents = 'none';
+  } else if (tabPill) {
+    tabPill.style.opacity = '1';
+    tabPill.style.transform = 'translateY(0)';
+    tabPill.style.pointerEvents = 'auto';
+  }
   
   setTimeout(() => {
-    loginF.style.display = tab === 'login' ? '' : 'none';
-    signupF.style.display = tab === 'signup' ? '' : 'none';
+    forms.forEach(f => { if(f) f.style.display = 'none'; });
+    if (tab === 'login') loginF.style.display = '';
+    else if (tab === 'signup') signupF.style.display = '';
+    else if (tab === 'forgot') forgotF.style.display = '';
+    else if (tab === 'reset') resetF.style.display = '';
+
     if (demoC) demoC.style.display = tab === 'login' ? '' : 'none';
     
     // Slight delay for reflow before fade in
     setTimeout(() => {
-      loginF.style.transition = 'opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
-      signupF.style.transition = 'opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
+      forms.forEach(f => { if(f) f.style.transition = 'opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)'; });
       if (demoC) demoC.style.transition = 'opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
       
-      loginF.style.opacity = tab === 'login' ? '1' : '0';
-      loginF.style.transform = tab === 'login' ? 'translateY(0)' : 'translateY(5px)';
-      
-      signupF.style.opacity = tab === 'signup' ? '1' : '0';
-      signupF.style.transform = tab === 'signup' ? 'translateY(0)' : 'translateY(5px)';
+      forms.forEach(f => { 
+        if(f) { 
+          f.style.opacity = (f.style.display === '') ? '1' : '0'; 
+          f.style.transform = (f.style.display === '') ? 'translateY(0)' : 'translateY(5px)'; 
+        } 
+      });
       
       if (demoC) {
         demoC.style.opacity = tab === 'login' ? '1' : '0';
@@ -684,8 +757,15 @@ function switchTab(tab) {
   document.getElementById('tabLogin').className = 'tab-btn' + (tab === 'login' ? ' active' : '');
   document.getElementById('tabSignup').className = 'tab-btn' + (tab === 'signup' ? ' active' : '');
 
-  document.getElementById('formTitle').textContent = tab === 'login' ? 'Welcome Back' : 'Create Account';
-  document.getElementById('formSubtitle').textContent = tab === 'login' ? 'Authenticate your secure session' : 'Deploy your smart contract wallet';
+  document.getElementById('formTitle').textContent = 
+    tab === 'login' ? 'Welcome Back' : 
+    tab === 'signup' ? 'Create Account' : 
+    tab === 'forgot' ? 'Account Recovery' : 'Reset Encryption Key';
+    
+  document.getElementById('formSubtitle').textContent = 
+    tab === 'login' ? 'Authenticate your secure session' : 
+    tab === 'signup' ? 'Deploy your smart contract wallet' : 
+    tab === 'forgot' ? 'Request a secure OTP to your email' : 'Finalize your account recovery';
 
   // Animate card scale much more smoothly
   const card = document.getElementById('loginCard');
@@ -735,7 +815,21 @@ async function handleAuth(url, payload, btnId, spinnerId, textId) {
   try {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await res.json();
-    if (data.redirect) {
+    if (data.success && data.message === "OTP sent to email") {
+      showStatus('✓ ' + data.message, 'success');
+      btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      spinner.style.display = 'none';
+      txt.textContent = '✓ Sent';
+      setTimeout(() => switchTab('reset'), 1000); // go to OTP input
+    }
+    else if (data.success && !data.redirect) {
+      showStatus('✓ Encryption key updated successfully.', 'success');
+      btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      spinner.style.display = 'none';
+      txt.textContent = '✓ Success';
+      setTimeout(() => switchTab('login'), 1500);
+    }
+    else if (data.redirect) {
       txt.textContent = '✓ Access Granted';
       btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
       spinner.style.display = 'none';
@@ -744,12 +838,12 @@ async function handleAuth(url, payload, btnId, spinnerId, textId) {
     } else {
       showStatus('❌ ' + data.error, 'error');
       btn.disabled = false; spinner.style.display = 'none';
-      txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Secure Wallet';
+      txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : btnId === 'signupBtn' ? 'Deploy Secure Wallet' : btnId === 'forgotBtn' ? 'Send Recovery OTP' : 'Update Encryption Key';
     }
   } catch(e) {
     showStatus('❌ Network error. Try again.', 'error');
     btn.disabled = false; spinner.style.display = 'none';
-    txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : 'Deploy Secure Wallet';
+    txt.textContent = btnId === 'loginBtn' ? 'Authenticate Session' : btnId === 'signupBtn' ? 'Deploy Secure Wallet' : btnId === 'forgotBtn' ? 'Send Recovery OTP' : 'Update Encryption Key';
   }
 }
 
@@ -763,7 +857,21 @@ document.getElementById('signupForm').addEventListener('submit', e => {
   const pwd = document.getElementById('signupPassword').value;
   const cnf = document.getElementById('signupConfirm').value;
   if (pwd !== cnf) { showStatus('❌ Encryption keys do not match.', 'error'); return; }
-  handleAuth('/api/register', { real_name: document.getElementById('signupName').value, username: document.getElementById('signupUsername').value, password: pwd }, 'signupBtn', 'signupSpinner', 'signupText');
+  handleAuth('/api/register', { email: document.getElementById('signupEmail').value, real_name: document.getElementById('signupName').value, username: document.getElementById('signupUsername').value, password: pwd }, 'signupBtn', 'signupSpinner', 'signupText');
+});
+
+document.getElementById('forgotForm').addEventListener('submit', e => {
+  e.preventDefault();
+  window.recoveryEmail = document.getElementById('forgotEmail').value;
+  handleAuth('/api/forgot_password', { email: window.recoveryEmail }, 'forgotBtn', 'forgotSpinner', 'forgotText');
+});
+
+document.getElementById('resetForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = window.recoveryEmail || document.getElementById('forgotEmail').value;
+  const otp = document.getElementById('resetOtp').value;
+  const newPwd = document.getElementById('resetPassword').value;
+  handleAuth('/api/reset_password', { email: email, otp: otp, new_password: newPwd }, 'resetBtn', 'resetSpinner', 'resetText');
 });
 
 // ── 1. Custom Dual-Ring Cursor ───────────────────────────────────────
