@@ -197,7 +197,7 @@ def forgot_password():
         # Fallback if no credentials are provided in .env
         print(f"\n[MOCK EMAIL SERVER - NO CREDENTIALS CONFIGURED] To: {email} | OTP: {otp}\n")
         
-    return jsonify({"success": True, "message": "OTP sent to email"})
+    return jsonify({"success": True, "message": "OTP sent to email", "demo_otp": otp})
 
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():

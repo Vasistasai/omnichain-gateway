@@ -439,10 +439,116 @@ body { overflow: hidden; }
   animation: blinkCursor 1s step-end infinite;
 }
 @keyframes blinkCursor { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* ── Email Preview Modal ── */
+#email-modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 99990;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+}
+#email-modal-overlay.show { display: flex; animation: fadeInModal 0.4s ease; }
+@keyframes fadeInModal { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+#email-modal {
+  width: 480px;
+  max-width: 95vw;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08);
+  font-family: 'Space Grotesk', sans-serif;
+  animation: slideUpModal 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes slideUpModal { from { transform:translateY(30px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.email-titlebar {
+  background: #1c1c1e;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.email-titlebar-dot { width: 12px; height: 12px; border-radius: 50%; }
+.email-body {
+  background: #0d1117;
+  padding: 0;
+}
+.email-header {
+  background: linear-gradient(135deg, #0f172a, #1e1b4b);
+  padding: 28px 32px;
+  border-bottom: 1px solid rgba(59,130,246,0.2);
+}
+.email-logo { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+.email-logo span { background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.email-subject { font-size: 0.78rem; color: rgba(255,255,255,0.35); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+.email-content { padding: 32px; }
+.email-greeting { color: rgba(255,255,255,0.7); font-size: 0.95rem; margin-bottom: 24px; line-height: 1.6; }
+.email-otp-block {
+  background: rgba(59,130,246,0.06);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 16px;
+  padding: 28px;
+  text-align: center;
+  margin: 24px 0;
+  position: relative;
+  overflow: hidden;
+}
+.email-otp-block::before {
+  content: '';
+  position: absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, transparent, #3b82f6, #8b5cf6, transparent);
+}
+.email-otp-label { font-size: 0.75rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; }
+.email-otp-code {
+  font-size: 3.5rem; font-weight: 800; letter-spacing: 0.35em;
+  background: linear-gradient(135deg, #fff, #93c5fd);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  font-family: monospace;
+  text-shadow: none;
+}
+.email-otp-expiry { font-size: 0.75rem; color: rgba(255,255,255,0.25); margin-top: 10px; }
+.email-footer-text { font-size: 0.8rem; color: rgba(255,255,255,0.3); line-height: 1.7; }
+.email-modal-close {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: none; border-radius: 0;
+  color: #fff; font-size: 0.92rem; font-weight: 700;
+  cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  transition: opacity 0.2s;
+  letter-spacing: 0.03em;
+}
+.email-modal-close:hover { opacity: 0.85; }
 </style>
 {% endblock %}
 
 {% block auth_content %}
+
+<!-- ── EMAIL OTP PREVIEW MODAL ── -->
+<div id="email-modal-overlay" onclick="closeEmailModal(event)">
+  <div id="email-modal">
+    <div class="email-titlebar">
+      <div class="email-titlebar-dot" style="background:#ff5f57"></div>
+      <div class="email-titlebar-dot" style="background:#febc2e"></div>
+      <div class="email-titlebar-dot" style="background:#28c840"></div>
+      <span style="flex:1; text-align:center; font-size:0.8rem; color:rgba(255,255,255,0.4);">Inbox — Security Alert</span>
+    </div>
+    <div class="email-body">
+      <div class="email-header">
+        <div class="email-logo">Secur<span>Fund</span> Ledger</div>
+        <div class="email-subject">🔐 Password Recovery · One-Time Passcode</div>
+      </div>
+      <div class="email-content">
+        <div class="email-greeting">Hi there,<br><br>We received a request to reset the password for your SecurFund Ledger account. Use the code below to proceed. This code expires in <strong style="color:#93c5fd">10 minutes</strong>.</div>
+        <div class="email-otp-block">
+          <div class="email-otp-label">Your One-Time Passcode</div>
+          <div class="email-otp-code" id="emailOtpDisplay">------</div>
+          <div class="email-otp-expiry">Expires in 10 minutes · Do not share this code</div>
+        </div>
+        <div class="email-footer-text">If you did not request a password reset, please ignore this email. Your account remains secure.<br><br>— The SecurFund Security Team</div>
+      </div>
+      <button class="email-modal-close" onclick="useOtpFromEmail()">✓ &nbsp;Use This Code &amp; Continue</button>
+    </div>
+  </div>
+</div>
 
 <!-- Custom Cursor -->
 <div id="cursor-ring"></div>
@@ -804,6 +910,26 @@ function showStatus(msg, type) {
   box.className = 'auth-status ' + type;
 }
 
+// ── Email Modal Helpers ───────────────────────────────────────────────
+function closeEmailModal(e) {
+  if (e.target === document.getElementById('email-modal-overlay')) {
+    document.getElementById('email-modal-overlay').classList.remove('show');
+    switchTab('reset');
+  }
+}
+function useOtpFromEmail() {
+  document.getElementById('email-modal-overlay').classList.remove('show');
+  // Auto-fill the OTP field and switch to reset tab
+  switchTab('reset');
+  setTimeout(() => {
+    const otpInput = document.getElementById('resetOtp');
+    if (otpInput && window._pendingOtp) {
+      otpInput.value = window._pendingOtp;
+      otpInput.dispatchEvent(new Event('input'));
+    }
+  }, 350);
+}
+
 // ── Auth Handlers ────────────────────────────────────────────────────
 async function handleAuth(url, payload, btnId, spinnerId, textId) {
   const btn = document.getElementById(btnId);
@@ -818,10 +944,16 @@ async function handleAuth(url, payload, btnId, spinnerId, textId) {
     if (data.success && data.message === "OTP sent to email") {
       showStatus('✓ ' + data.message, 'success');
       
+      // Show premium email preview modal
+      if (data.demo_otp) {
+        document.getElementById('emailOtpDisplay').textContent = data.demo_otp;
+        document.getElementById('email-modal-overlay').classList.add('show');
+        window._pendingOtp = data.demo_otp;
+      }
+      
       btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
       spinner.style.display = 'none';
       txt.textContent = '✓ Sent';
-      setTimeout(() => switchTab('reset'), 1000); // go to OTP input
     }
     else if (data.success && !data.redirect) {
       showStatus('✓ Encryption key updated successfully.', 'success');
