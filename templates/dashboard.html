@@ -406,8 +406,22 @@ function updateDots() {
     d.style.background = i === currentAssetIdx ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
     d.style.transform = i === currentAssetIdx ? 'scale(1.4)' : 'scale(1)';
   });
+  const asset = ASSETS[currentAssetIdx];
+  // Update coin label inside card
   const el = document.getElementById('cardAssetName');
-  if (el) el.textContent = ASSETS[currentAssetIdx].name + ' (' + ASSETS[currentAssetIdx].id + ')';
+  if (el) el.textContent = asset.name + ' (' + asset.id + ')';
+  // Update the ETH badge on the send form
+  const lbl = document.getElementById('assetLabel');
+  if (lbl) lbl.textContent = asset.id;
+
+  // Update balance for non-ETH assets (mock)
+  const balEl = document.getElementById('walletBalance');
+  if (asset.id === 'ETH') {
+    loadWallet(); // real on-chain balance
+  } else {
+    const mockBal = { BTC: '0.0000 BTC', SOL: '0.0000 SOL', USDT: '0.0000 USDT' };
+    if (balEl) balEl.textContent = mockBal[asset.id] || '0.0000 ' + asset.id;
+  }
 }
 
 function jumpAsset(idx) {
