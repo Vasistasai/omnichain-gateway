@@ -175,10 +175,16 @@ def admin_transactions():
     if session.get('role') != 'Admin':
         return redirect(url_for('index'))
     
+    # Sync all users (for demo purposes)
+    conn = get_db_connection()
+    all_users = conn.execute('SELECT id, wallet_address FROM users').fetchall()
+    for u in all_users:
+        if u['wallet_address']:
+            sync_etherscan_history(u['wallet_address'], u['id'])
+    
     risk_filter = request.args.get('risk', '')
     search = request.args.get('search', '')
     
-    conn = get_db_connection()
     query = '''SELECT t.*, u.real_name, u.ip_address, u.username
                FROM transactions t JOIN users u ON t.user_id = u.id WHERE 1=1'''
     params = []
