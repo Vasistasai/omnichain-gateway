@@ -21,6 +21,7 @@ def init_db():
             real_name TEXT NOT NULL,
             wallet_address TEXT,
             private_key TEXT,
+            external_wallet TEXT,
             ip_address TEXT,
             role TEXT NOT NULL DEFAULT 'User'
         )

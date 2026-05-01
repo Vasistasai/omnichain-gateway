@@ -205,16 +205,31 @@
       <div class="web3-card">
         <div class="flex justify-between items-start">
           <div class="card-chip"></div>
-          <div style="font-family: monospace; color: rgba(255,255,255,0.5);">CUSTOM WALLET</div>
+          <div style="font-family: monospace; color: rgba(255,255,255,0.5);">
+            {% if external_wallet %}EXTERNAL WALLET{% else %}CUSTOM WALLET{% endif %}
+          </div>
         </div>
         <div class="card-balance-label">Available Balance</div>
         <div class="card-balance" id="walletBalance">Loading...</div>
-        <div class="card-address" id="walletAddrDisplay">
-          {{ wallet_address[:6] }}••••{{ wallet_address[-4:] }}
-          <span class="copy-icon" onclick="copyToClipboard('{{ wallet_address }}', this)" title="Copy Address">⎘</span>
+        <div class="flex justify-between items-end">
+          <div class="card-address" id="walletAddrDisplay">
+            {% if external_wallet %}
+              {{ external_wallet[:6] }}••••{{ external_wallet[-4:] }}
+              <span class="copy-icon" onclick="copyToClipboard('{{ external_wallet }}', this)" title="Copy Address">⎘</span>
+            {% else %}
+              {{ wallet_address[:6] }}••••{{ wallet_address[-4:] }}
+              <span class="copy-icon" onclick="copyToClipboard('{{ wallet_address }}', this)" title="Copy Address">⎘</span>
+            {% endif %}
+          </div>
+          {% if external_wallet %}
+            <button id="unbindBtn" class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.7rem; border-radius:100px;">Disconnect</button>
+          {% else %}
+            <button id="connectWalletBtn" class="btn btn-primary" style="padding:0.3rem 0.8rem; font-size:0.7rem; border-radius:100px;">Connect Web3 Wallet</button>
+          {% endif %}
         </div>
       </div>
     </div>
+    <div id="connectError" class="status-box error hidden mb-4"></div>
 
     <!-- Send Portal -->
     <div class="send-portal">
@@ -282,16 +297,17 @@
       <div style="max-height: 350px; overflow-y: auto; padding-right: 0.5rem;">
         {% for txn in transactions %}
         <div class="activity-item">
-          <div class="activity-icon icon-send" style="{% if txn.receiver_address|lower == wallet_address|lower %}background: rgba(16,185,129,0.15); color: var(--success);{% endif %}">
-            {% if txn.receiver_address|lower == wallet_address|lower %}↙{% else %}↗{% endif %}
+          {% set is_receiver = (txn.receiver_address|lower == wallet_address|lower) or (external_wallet and txn.receiver_address|lower == external_wallet|lower) %}
+          <div class="activity-icon icon-send" style="{% if is_receiver %}background: rgba(16,185,129,0.15); color: var(--success);{% endif %}">
+            {% if is_receiver %}↙{% else %}↗{% endif %}
           </div>
           <div class="activity-details">
             <div class="activity-title">
-              <span>{% if txn.receiver_address|lower == wallet_address|lower %}Received ETH{% else %}Sent ETH{% endif %}</span>
+              <span>{% if is_receiver %}Received ETH{% else %}Sent ETH{% endif %}</span>
               <span class="text-neon" style="font-family: monospace;">{{ "%.4f"|format(txn.amount_eth) }}</span>
             </div>
             <div class="activity-hash">
-              {% if txn.receiver_address|lower == wallet_address|lower %}
+              {% if is_receiver %}
                 From: {{ txn.sender_address[:8] }}...{{ txn.sender_address[-6:] }}
               {% else %}
                 To: {{ txn.receiver_address[:8] }}...{{ txn.receiver_address[-6:] }}
@@ -322,13 +338,65 @@
 
 {% block scripts %}
 <script>
-const userAddress = "{{ wallet_address }}";
+const internalAddress = "{{ wallet_address }}";
+const externalAddress = "{{ external_wallet if external_wallet else '' }}";
 const privateKey = "{{ private_key }}";
 
-// ── 1. Setup Custom Ethers Wallet (No MetaMask) ─────────────────────────
-// We use a public RPC endpoint for Sepolia to avoid API key rate limits or CORS issues
-const provider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
-const wallet = new ethers.Wallet(privateKey, provider);
+const isExternal = !!externalAddress;
+const userAddress = isExternal ? externalAddress : internalAddress;
+
+// ── 1. Setup Wallet Providers ─────────────────────────────────────────
+// Public RPC for internal reading
+const publicProvider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
+
+let signer, provider;
+
+if (isExternal && window.ethereum) {
+  provider = new ethers.BrowserProvider(window.ethereum);
+} else {
+  provider = publicProvider;
+}
+
+// ── Web3 Connection Logic ──────────────────────────────────────────────
+const connectBtn = document.getElementById('connectWalletBtn');
+if (connectBtn) {
+  connectBtn.addEventListener('click', async () => {
+    if (!window.ethereum) {
+      const err = document.getElementById('connectError');
+      err.textContent = 'Web3 extension not detected. Please install your wallet.';
+      err.classList.remove('hidden');
+      return;
+    }
+    connectBtn.innerHTML = '<span class="spinner"></span>...';
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const res = await fetch('/api/bind-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: accounts[0] })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Wallet Connected!', 'Initializing...', 'success');
+        setTimeout(() => window.location.reload(), 800);
+      } else throw new Error(data.error);
+    } catch(e) {
+      const err = document.getElementById('connectError');
+      err.textContent = e.message || 'Connection failed';
+      err.classList.remove('hidden');
+      connectBtn.innerHTML = 'Connect Web3 Wallet';
+    }
+  });
+}
+
+const unbindBtn = document.getElementById('unbindBtn');
+if (unbindBtn) {
+  unbindBtn.addEventListener('click', async () => {
+    if (!confirm('Disconnect this external wallet and switch back to your Custom Wallet?')) return;
+    await fetch('/api/unbind-wallet', { method: 'POST' });
+    window.location.reload();
+  });
+}
 
 // Pipeline UI helper
 function updatePipeline(step) {
@@ -378,9 +446,22 @@ async function loadWallet() {
     console.error("Failed to load wallet data from Sepolia", e); 
   }
 }
-loadWallet();
 
-// ── 3. Send Transaction (Using custom wallet) ──────────────────────────
+// Set up signer before loading wallet
+if (isExternal && window.ethereum) {
+  provider.getSigner().then(s => {
+    signer = s;
+    loadWallet();
+  }).catch(e => {
+    console.error(e);
+    loadWallet();
+  });
+} else {
+  signer = new ethers.Wallet(privateKey, publicProvider);
+  loadWallet();
+}
+
+// ── 3. Send Transaction ──────────────────────────
 document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const receiver = document.getElementById('receiver').value.trim();
@@ -399,11 +480,11 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
   updatePipeline(1);
   
   statusBox.className = 'status-box info mt-2';
-  statusBox.textContent = 'Signing transaction locally using private key...';
+  statusBox.textContent = isExternal ? 'Please confirm the transaction in your external wallet...' : 'Signing transaction locally using private key...';
   statusBox.classList.remove('hidden');
 
   try {
-    const tx = await wallet.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
+    const tx = await signer.sendTransaction({ to: receiver, value: ethers.parseEther(amount) });
     
     updatePipeline(2);
     statusBox.className = 'status-box warning mt-2';

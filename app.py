@@ -97,13 +97,37 @@ def auth():
         session['role'] = user['role']
         session['wallet_address'] = user['wallet_address']
         session['private_key'] = user['private_key']
+        session['external_wallet'] = user['external_wallet']
         conn.close()
         return jsonify({"redirect": url_for('admin_dashboard') if user['role'] == 'Admin' else url_for('user_dashboard')})
 
     conn.close()
     return jsonify({"error": "Invalid credentials. Try admin/admin123 or public/public123"}), 401
 
-# Old bind/unbind routes removed for custom wallet
+@app.route('/api/bind-wallet', methods=['POST'])
+def bind_wallet():
+    if 'user_id' not in session or session.get('role') == 'Admin':
+        return jsonify({"error": "Unauthorized"}), 403
+    wallet_address = request.json.get('wallet_address', '').lower()
+    if not wallet_address:
+        return jsonify({"error": "Wallet address required"}), 400
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET external_wallet = ? WHERE id = ?', (wallet_address, session['user_id']))
+    conn.commit()
+    conn.close()
+    session['external_wallet'] = wallet_address
+    return jsonify({"success": True})
+
+@app.route('/api/unbind-wallet', methods=['POST'])
+def unbind_wallet():
+    if 'user_id' not in session or session.get('role') == 'Admin':
+        return jsonify({"error": "Unauthorized"}), 403
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET external_wallet = NULL WHERE id = ?', (session['user_id'],))
+    conn.commit()
+    conn.close()
+    session.pop('external_wallet', None)
+    return jsonify({"success": True})
 
 @app.route('/logout')
 def logout():
@@ -120,10 +144,16 @@ def user_dashboard():
     
     # Automatically fetch incoming deposits from Etherscan to show external history
     sync_etherscan_history(user['wallet_address'], session['user_id'])
+    if user['external_wallet']:
+        sync_etherscan_history(user['external_wallet'], session['user_id'])
     
     txns = conn.execute('SELECT * FROM transactions WHERE user_id = ? ORDER BY id DESC', (session['user_id'],)).fetchall()
     conn.close()
-    return render_template('dashboard.html', wallet_address=user['wallet_address'], private_key=user['private_key'], transactions=txns)
+    return render_template('dashboard.html', 
+                           wallet_address=user['wallet_address'], 
+                           private_key=user['private_key'], 
+                           external_wallet=user['external_wallet'],
+                           transactions=txns)
 
 @app.route('/api/sync-tx', methods=['POST'])
 def sync_tx():
@@ -178,10 +208,12 @@ def admin_transactions():
     
     # Sync all users (for demo purposes)
     conn = get_db_connection()
-    all_users = conn.execute('SELECT id, wallet_address FROM users').fetchall()
+    all_users = conn.execute('SELECT id, wallet_address, external_wallet FROM users').fetchall()
     for u in all_users:
         if u['wallet_address']:
             sync_etherscan_history(u['wallet_address'], u['id'])
+        if u['external_wallet']:
+            sync_etherscan_history(u['external_wallet'], u['id'])
     
     risk_filter = request.args.get('risk', '')
     search = request.args.get('search', '')
