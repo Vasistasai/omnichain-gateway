@@ -697,12 +697,15 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
 
   } catch(e) {
     console.error(e);
-    statusBox.className = 'status-box error mt-2'; statusBox.textContent = '❌ Transaction failed. Insufficient funds or network error.';
+    statusBox.className = 'status-box error mt-2'; 
+    statusBox.textContent = '❌ Transaction failed: ' + (e.message || 'Network error');
     showToast('Failed', 'Transaction failed', 'error');
     btn.disabled = false;
     document.getElementById('sendSpinner').classList.add('hidden');
     document.getElementById('sendText').textContent = 'Sign & Broadcast';
-    document.getElementById('txnPipeline').classList.add('hidden');
+    document.querySelectorAll('.pipeline-step').forEach(s => {
+      s.classList.remove('active', 'done');
+    });
   }
 });
 
