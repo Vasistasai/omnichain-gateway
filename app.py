@@ -134,16 +134,42 @@ def regenerate_wallet():
     if 'user_id' not in session or session.get('role') == 'Admin':
         return jsonify({"error": "Unauthorized"}), 403
     from eth_account import Account
-    import secrets
+    import secrets, hashlib, base58
     new_account = Account.create(secrets.token_hex(32))
+    
+    # Generate realistic-looking mock addresses for BTC and SOL
+    btc_mock = "bc1q" + secrets.token_hex(20)
+    sol_mock = base58.b58encode(secrets.token_bytes(32)).decode('utf-8')
+    
     conn = get_db_connection()
-    conn.execute('UPDATE users SET wallet_address = ?, private_key = ? WHERE id = ?', 
-                 (new_account.address, new_account.key.hex(), session['user_id']))
+    conn.execute('UPDATE users SET wallet_address = ?, private_key = ?, btc_wallet = ?, sol_wallet = ? WHERE id = ?', 
+                 (new_account.address, new_account.key.hex(), btc_mock, sol_mock, session['user_id']))
     conn.commit()
     conn.close()
     session['wallet_address'] = new_account.address
     session['private_key'] = new_account.key.hex()
-    return jsonify({"success": True, "address": new_account.address})
+    return jsonify({"success": True})
+
+@app.route('/api/send-mock-tx', methods=['POST'])
+def send_mock_tx():
+    if 'user_id' not in session: return jsonify({"error": "Unauthorized"}), 403
+    data = request.json
+    asset = data.get('asset', 'ETH')
+    receiver = data.get('receiver')
+    amount = data.get('amount')
+    sender = data.get('sender')
+    
+    import uuid
+    tx_hash = f"mock_{asset.lower()}_" + uuid.uuid4().hex
+    
+    conn = get_db_connection()
+    conn.execute('''INSERT INTO transactions 
+                    (user_id, tx_hash, amount_eth, sender_address, receiver_address, status, currency)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                 (session['user_id'], tx_hash, float(amount), sender, receiver, 'confirmed', asset))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "tx_hash": tx_hash})
 
 @app.route('/logout')
 def logout():
@@ -173,6 +199,8 @@ def user_dashboard():
                            wallet_address=user['wallet_address'], 
                            private_key=user['private_key'],
                            external_wallet=user['external_wallet'],
+                           btc_wallet=user['btc_wallet'],
+                           sol_wallet=user['sol_wallet'],
                            transactions=txns)
 
 @app.route('/settings')

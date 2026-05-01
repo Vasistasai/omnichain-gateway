@@ -22,6 +22,8 @@ def init_db():
             wallet_address TEXT,
             private_key TEXT,
             external_wallet TEXT,
+            btc_wallet TEXT,
+            sol_wallet TEXT,
             ip_address TEXT,
             role TEXT NOT NULL DEFAULT 'User'
         )
@@ -41,6 +43,7 @@ def init_db():
             status TEXT DEFAULT 'pending',
             risk_level TEXT DEFAULT 'low',
             risk_reason TEXT,
+            currency TEXT DEFAULT 'ETH',
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
@@ -49,13 +52,14 @@ def init_db():
     c.execute('SELECT COUNT(*) FROM users')
     if c.fetchone()[0] == 0:
         # Generate built-in wallets for the demo users
-        admin_acct = Account.create()
-        public_acct = Account.create()
-
-        c.execute('INSERT INTO users (username, password, real_name, wallet_address, private_key, ip_address, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                 ('admin', 'admin123', 'Super Admin', admin_acct.address, admin_acct.key.hex(), '127.0.0.1', 'Admin'))
-        c.execute('INSERT INTO users (username, password, real_name, wallet_address, private_key, ip_address, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                 ('public', 'public123', 'John Doe', public_acct.address, public_acct.key.hex(), '127.0.0.1', 'User'))
+        admin_acc = Account.create()
+        public_acc = Account.create()
+        
+        c.execute("INSERT INTO users (real_name, username, password, role, wallet_address, private_key, btc_wallet, sol_wallet, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                  ("Admin", "admin", "admin123", "Admin", "", "", "", "", "127.0.0.1"))
+                  
+        c.execute("INSERT INTO users (real_name, username, password, role, wallet_address, private_key, btc_wallet, sol_wallet, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                  ("Public User", "public", "public123", "User", public_acc.address, public_acc.key.hex(), "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", "7hVnL5K2L9o3b2HnX2V5t4qPqj4e3yL1xV9uR4pW2qX", "192.168.1.5"))
 
     conn.commit()
     conn.close()
