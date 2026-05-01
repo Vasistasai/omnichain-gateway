@@ -129,6 +129,22 @@ def unbind_wallet():
     session.pop('external_wallet', None)
     return jsonify({"success": True})
 
+@app.route('/api/regenerate-wallet', methods=['POST'])
+def regenerate_wallet():
+    if 'user_id' not in session or session.get('role') == 'Admin':
+        return jsonify({"error": "Unauthorized"}), 403
+    from eth_account import Account
+    import secrets
+    new_account = Account.create(secrets.token_hex(32))
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET wallet_address = ?, private_key = ? WHERE id = ?', 
+                 (new_account.address, new_account.key.hex(), session['user_id']))
+    conn.commit()
+    conn.close()
+    session['wallet_address'] = new_account.address
+    session['private_key'] = new_account.key.hex()
+    return jsonify({"success": True, "address": new_account.address})
+
 @app.route('/logout')
 def logout():
     session.clear()

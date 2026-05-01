@@ -205,8 +205,14 @@
       <div class="web3-card">
         <div class="flex justify-between items-start">
           <div class="card-chip"></div>
-          <div style="font-family: monospace; color: rgba(255,255,255,0.5);">
-            {% if external_wallet %}EXTERNAL WALLET{% else %}CUSTOM WALLET{% endif %}
+          <div style="font-family: monospace; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 0.5rem;">
+            {% if external_wallet %}
+              EXTERNAL WALLET
+            {% else %}
+              PERSONAL CUSTOM WALLET
+              <button id="revealKeyBtn" class="btn btn-ghost" style="padding:0.1rem 0.4rem; font-size:0.6rem; border-radius:4px; opacity:0.7;">Reveal Key</button>
+              <button id="regenWalletBtn" class="btn btn-ghost" style="padding:0.1rem 0.4rem; font-size:0.6rem; border-radius:4px; opacity:0.7;" title="Generate a brand new address">Regenerate</button>
+            {% endif %}
           </div>
         </div>
         <div class="card-balance-label">Available Balance</div>
@@ -342,6 +348,17 @@
   </div>
 
 </div>
+<div id="privateKeyModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+  <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; text-align: center;">
+    <h3 style="margin-top: 0; color: #fff;">Your Private Key</h3>
+    <p style="color: var(--warning); font-size: 0.8rem; margin-bottom: 1rem;">WARNING: Never share this key. Anyone with this key controls your funds.</p>
+    <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; word-break: break-all; margin-bottom: 1rem; color: #fff;">
+      {{ private_key }}
+    </div>
+    <button onclick="document.getElementById('privateKeyModal').classList.add('hidden')" class="btn btn-primary" style="width: 100%;">Close</button>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -396,6 +413,25 @@ if (unbindBtn) {
     if (!confirm('Disconnect this external wallet and switch back to your Custom Wallet?')) return;
     await fetch('/api/unbind-wallet', { method: 'POST' });
     window.location.reload();
+  });
+}
+
+const revealKeyBtn = document.getElementById('revealKeyBtn');
+if (revealKeyBtn) {
+  revealKeyBtn.addEventListener('click', () => {
+    document.getElementById('privateKeyModal').classList.remove('hidden');
+  });
+}
+
+const regenWalletBtn = document.getElementById('regenWalletBtn');
+if (regenWalletBtn) {
+  regenWalletBtn.addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to generate a completely new wallet? Your old wallet will be disconnected from your account.')) return;
+    regenWalletBtn.innerHTML = '...';
+    try {
+      const res = await fetch('/api/regenerate-wallet', { method: 'POST' });
+      if (res.ok) window.location.reload();
+    } catch(e) { console.error(e); }
   });
 }
 
