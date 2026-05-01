@@ -223,45 +223,47 @@
     <div id="connectError" class="status-box error hidden mb-4"></div>
 
     <!-- 3D Web3 Card with Asset Slider -->
-    <div class="web3-card-container" style="position:relative; display:flex; align-items:center;">
-      <button onclick="prevAsset()" style="position:absolute;left:-18px;z-index:10;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:36px;height:36px;color:#fff;cursor:pointer;font-size:1rem;">❮</button>
-      <div class="web3-card" style="width:100%;transition:transform 0.2s;" id="web3CardContent">
-        <div class="flex justify-between items-start">
-          <div class="card-chip"></div>
-          <div style="font-family: monospace; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 0.5rem;">
-            {% if external_wallet %}
-              CUSTOM EXTERNAL WALLET
-            {% else %}
-              PERSONAL WALLET
-              <button id="regenWalletBtn" class="btn btn-ghost" style="padding:0.1rem 0.4rem; font-size:0.6rem; border-radius:4px; opacity:0.7;" title="Generate a brand new address">Regenerate</button>
-            {% endif %}
+    <div style="position:relative; margin-bottom:0.75rem; padding:0 24px;">
+      <!-- Left Arrow -->
+      <button onclick="prevAsset()" style="position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:10;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:36px;height:36px;color:#fff;cursor:pointer;font-size:1rem;line-height:1;">❮</button>
+
+      <div class="web3-card-container">
+        <div class="web3-card" id="web3CardContent">
+          <div class="flex justify-between items-start">
+            <div class="card-chip"></div>
+            <div style="font-family:monospace;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:0.5rem;">
+              <span id="cardNetworkLabel">{% if external_wallet %}EXTERNAL WALLET{% else %}PERSONAL WALLET{% endif %}</span>
+              {% if not external_wallet %}
+                <button id="regenWalletBtn" class="btn btn-ghost" style="padding:0.1rem 0.4rem;font-size:0.6rem;border-radius:4px;opacity:0.7;" title="Generate a new address">Regenerate</button>
+              {% endif %}
+            </div>
           </div>
-        </div>
-        <div class="card-balance-label">Available Balance</div>
-        <div class="card-balance" id="walletBalance">Loading...</div>
-        <div class="flex justify-between items-end">
-          <div class="card-address" id="walletAddrDisplay">
-            {% if external_wallet %}
-              {{ external_wallet[:6] }}••••{{ external_wallet[-4:] }}
-              <span class="copy-icon" onclick="copyToClipboard('{{ external_wallet }}', this)" title="Copy Address">⎘</span>
-            {% else %}
-              {{ wallet_address[:6] }}••••{{ wallet_address[-4:] }}
-              <span class="copy-icon" onclick="copyToClipboard('{{ wallet_address }}', this)" title="Copy Address">⎘</span>
-            {% endif %}
+          <div class="card-balance-label"><span id="cardAssetName">Ethereum (ETH)</span> — Available Balance</div>
+          <div class="card-balance" id="walletBalance">Loading...</div>
+          <div class="flex justify-between items-end">
+            <div class="card-address" id="walletAddrDisplay">
+              {% if external_wallet %}
+                {{ external_wallet[:6] }}••••{{ external_wallet[-4:] }}
+                <span class="copy-icon" onclick="copyToClipboard('{{ external_wallet }}', this)" title="Copy">⎘</span>
+              {% else %}
+                {{ wallet_address[:6] }}••••{{ wallet_address[-4:] }}
+                <span class="copy-icon" onclick="copyToClipboard('{{ wallet_address }}', this)" title="Copy">⎘</span>
+              {% endif %}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    
 
-      <button onclick="nextAsset()" style="position:absolute;right:-18px;z-index:10;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:36px;height:36px;color:#fff;cursor:pointer;font-size:1rem;">❯</button>
+      <!-- Right Arrow -->
+      <button onclick="nextAsset()" style="position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:10;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:50%;width:36px;height:36px;color:#fff;cursor:pointer;font-size:1rem;line-height:1;">❯</button>
     </div>
+
     <!-- Asset indicator dots -->
-    <div id="assetDots" style="display:flex;justify-content:center;gap:6px;margin:0.75rem 0 1.5rem 0;">
-      <span onclick="jumpAsset(0)" style="width:8px;height:8px;border-radius:50%;background:var(--primary);cursor:pointer;transition:all 0.2s;" class="adot"></span>
-      <span onclick="jumpAsset(1)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;" class="adot"></span>
-      <span onclick="jumpAsset(2)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;" class="adot"></span>
-      <span onclick="jumpAsset(3)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;" class="adot"></span>
+    <div style="display:flex;justify-content:center;gap:8px;margin-bottom:1.5rem;">
+      <span onclick="jumpAsset(0)" class="adot" style="width:8px;height:8px;border-radius:50%;background:var(--primary);cursor:pointer;transition:all 0.2s;transform:scale(1.4);"></span>
+      <span onclick="jumpAsset(1)" class="adot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;"></span>
+      <span onclick="jumpAsset(2)" class="adot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;"></span>
+      <span onclick="jumpAsset(3)" class="adot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;"></span>
     </div>
 
     <!-- Send Portal -->
@@ -404,28 +406,30 @@ function updateDots() {
     d.style.background = i === currentAssetIdx ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
     d.style.transform = i === currentAssetIdx ? 'scale(1.4)' : 'scale(1)';
   });
+  const el = document.getElementById('cardAssetName');
+  if (el) el.textContent = ASSETS[currentAssetIdx].name + ' (' + ASSETS[currentAssetIdx].id + ')';
 }
 
 function jumpAsset(idx) {
   currentAssetIdx = idx;
-  cardContent.style.transform = 'scale(0.95)';
-  setTimeout(() => cardContent.style.transform = 'scale(1)', 150);
+  const c = document.getElementById('web3CardContent');
+  if (c) { c.style.transform='scale(0.95)'; setTimeout(()=>c.style.transform='scale(1)',150); }
   updateDots();
   loadChart(ASSETS[currentAssetIdx]);
 }
 
 function nextAsset() {
   currentAssetIdx = (currentAssetIdx + 1) % ASSETS.length;
-  cardContent.style.transform = 'scale(0.95)';
-  setTimeout(() => cardContent.style.transform = 'scale(1)', 150);
+  const c = document.getElementById('web3CardContent');
+  if (c) { c.style.transform='scale(0.95)'; setTimeout(()=>c.style.transform='scale(1)',150); }
   updateDots();
   loadChart(ASSETS[currentAssetIdx]);
 }
 
 function prevAsset() {
   currentAssetIdx = (currentAssetIdx - 1 + ASSETS.length) % ASSETS.length;
-  cardContent.style.transform = 'scale(0.95)';
-  setTimeout(() => cardContent.style.transform = 'scale(1)', 150);
+  const c = document.getElementById('web3CardContent');
+  if (c) { c.style.transform='scale(0.95)'; setTimeout(()=>c.style.transform='scale(1)',150); }
   updateDots();
   loadChart(ASSETS[currentAssetIdx]);
 }
