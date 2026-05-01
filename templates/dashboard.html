@@ -298,19 +298,23 @@
       </div>
 
       <div style="max-height: 350px; overflow-y: auto; padding-right: 0.5rem;">
+        {% set active_address = external_wallet if external_wallet else wallet_address %}
+        {% set ns = namespace(found=false) %}
         {% for txn in transactions %}
-        <div class="activity-item">
-          {% set is_receiver = (txn.receiver_address|lower == wallet_address|lower) or (external_wallet and txn.receiver_address|lower == external_wallet|lower) %}
-          <div class="activity-icon icon-send" style="{% if is_receiver %}background: rgba(16,185,129,0.15); color: var(--success);{% endif %}">
-            {% if is_receiver %}↙{% else %}↗{% endif %}
-          </div>
-          <div class="activity-details">
-            <div class="activity-title">
-              <span>{% if is_receiver %}Received ETH{% else %}Sent ETH{% endif %}</span>
-              <span class="text-neon" style="font-family: monospace;">{{ "%.4f"|format(txn.amount_eth) }}</span>
-            </div>
-            <div class="activity-hash">
-              {% if is_receiver %}
+          {% if txn.sender_address|lower == active_address|lower or txn.receiver_address|lower == active_address|lower %}
+            {% set ns.found = true %}
+            <div class="activity-item">
+              {% set is_receiver = (txn.receiver_address|lower == active_address|lower) %}
+              <div class="activity-icon icon-send" style="{% if is_receiver %}background: rgba(16,185,129,0.15); color: var(--success);{% endif %}">
+                {% if is_receiver %}↙{% else %}↗{% endif %}
+              </div>
+              <div class="activity-details">
+                <div class="activity-title">
+                  <span>{% if is_receiver %}Received ETH{% else %}Sent ETH{% endif %}</span>
+                  <span class="text-neon" style="font-family: monospace;">{{ "%.4f"|format(txn.amount_eth) }}</span>
+                </div>
+                <div class="activity-hash">
+                  {% if is_receiver %}
                 From: {{ txn.sender_address[:8] }}...{{ txn.sender_address[-6:] }}
               {% else %}
                 To: {{ txn.receiver_address[:8] }}...{{ txn.receiver_address[-6:] }}
@@ -323,12 +327,13 @@
             </div>
           </div>
         </div>
+          {% endif %}
         {% endfor %}
 
-        {% if not transactions %}
+        {% if not ns.found %}
         <div style="text-align:center; padding: 3rem 0; color: var(--text-secondary);">
           <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📭</div>
-          <p>No transfers yet.</p>
+          <p>No transfers yet for this wallet.</p>
         </div>
         {% endif %}
       </div>
