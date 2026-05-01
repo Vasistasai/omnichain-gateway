@@ -102,7 +102,44 @@ def auth():
         return jsonify({"redirect": url_for('admin_dashboard') if user['role'] == 'Admin' else url_for('user_dashboard')})
 
     conn.close()
-    return jsonify({"error": "Invalid credentials. Try admin/admin123 or public/public123"}), 401
+    return jsonify({"error": "Invalid credentials"}), 401
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    real_name = data.get('real_name', '').strip()
+    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+
+    if not username or not password or not real_name:
+        return jsonify({"error": "All fields required"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    from eth_account import Account
+    import secrets
+    new_account = Account.create(secrets.token_hex(32))
+
+    conn = get_db_connection()
+    existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({"error": "Username already taken"}), 409
+
+    conn.execute(
+        'INSERT INTO users (real_name, username, password, role, wallet_address, private_key, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        (real_name, username, password, 'User', new_account.address, new_account.key.hex(), ip_address)
+    )
+    conn.commit()
+    user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    session['user_id'] = user['id']
+    session['username'] = user['username']
+    session['role'] = user['role']
+    session['wallet_address'] = user['wallet_address']
+    session['private_key'] = user['private_key']
+    conn.close()
+    return jsonify({"redirect": url_for('user_dashboard')})
 
 @app.route('/api/bind-wallet', methods=['POST'])
 def bind_wallet():
