@@ -3,7 +3,7 @@ import os, csv, io, json, requests
 from database import init_db, get_db_connection
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 app = Flask(__name__)
 app.secret_key = "omnichain_web3_secret_2024"
