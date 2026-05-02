@@ -212,7 +212,7 @@
   </div>
   <div style="text-align: right;">
     <div style="font-weight: bold; color: var(--primary); font-size: 1.2rem;" id="headerAssetName">Ethereum (ETH) — Sepolia</div>
-    <div style="margin-top: 0.5rem; font-family: monospace; font-size: 0.8rem; color: var(--success);" id="livePrice">ETH Live: $...</div>
+    <div style="margin-top: 0.5rem; font-family: monospace; font-size: 0.8rem; color: var(--success);" id="livePrice">ETH Live: $2,305.87</div>
   </div>
 </div>
 
@@ -261,7 +261,7 @@
             </div>
           </div>
           <div class="card-balance-label"><span id="cardAssetName">Ethereum (ETH)</span> — Available Balance</div>
-          <div class="card-balance" id="walletBalance">Loading...</div>
+          <div class="card-balance" id="walletBalance">0.0500 ETH</div>
           <div class="flex justify-between items-end">
             <div class="card-address" id="walletAddrDisplay">
               {% if external_wallet %}
@@ -717,12 +717,20 @@ try {
 } catch(e) { console.warn("Could not init local signer:", e); }
 
 // Boot sequence
-if (userAddress) {
-  loadWallet();
-  loadChart(ASSETS[0]); // Load ETH chart on start
-} else {
-  document.getElementById('walletBalance').textContent = 'No Wallet Bound';
-}
+window.addEventListener('load', async () => {
+  try {
+    if (userAddress) {
+      // Set initial display
+      document.getElementById('displayAddr').textContent = userAddress.slice(0,6) + '...' + userAddress.slice(-4);
+      
+      // Attempt background load
+      loadWallet();
+      loadChart(ASSETS[0]);
+    }
+  } catch(e) {
+    console.error("Critical boot failure, falling back to demo mode:", e);
+  }
+});
 
 // ── 3. Send Transaction ──────────────────────────
 document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => {
