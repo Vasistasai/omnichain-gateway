@@ -27,14 +27,17 @@ def calculate_risk(amount_eth, receiver_address, user_id):
     risk_level = 'low'
     risk_reason = ''
 
-    if amount_eth >= 1.0:
+    # Lower thresholds for demo purposes
+    if receiver_address.lower().startswith('0x000'):
         risk_level = 'high'
-        risk_reason = f'Large transfer: {amount_eth} ETH exceeds 1 ETH threshold'
-    elif amount_eth >= 0.5:
-        if risk_level != 'high':
-            risk_level = 'medium'
-            risk_reason = f'Moderate transfer: {amount_eth} ETH'
-
+        risk_reason = 'Transaction to restricted "Black Hole" address detected'
+    elif amount_eth >= 0.005:
+        risk_level = 'high'
+        risk_reason = f'Large transfer: {amount_eth} ETH exceeds security threshold'
+    elif amount_eth >= 0.001:
+        risk_level = 'medium'
+        risk_reason = f'Moderate transfer amount: {amount_eth} ETH'
+    
     conn = get_db_connection()
     repeated = conn.execute(
         'SELECT COUNT(*) FROM transactions WHERE user_id = ? AND receiver_address = ?',
@@ -45,7 +48,7 @@ def calculate_risk(amount_eth, receiver_address, user_id):
     if repeated >= 3:
         risk_level = 'high'
         risk_reason = f'Repeated transfers ({repeated}x) to same address'
-    elif repeated >= 2 and risk_level == 'low':
+    elif repeated >= 2 and risk_level != 'high':
         risk_level = 'medium'
         risk_reason = f'Multiple transfers ({repeated}x) to same address'
 
