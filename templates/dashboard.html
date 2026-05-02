@@ -86,10 +86,10 @@
   background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3) 0%, transparent 60%);
   border-radius: 50%;
 }
-.coin-eth  { background: linear-gradient(135deg, #627eea, #4355c4); box-shadow: 0 0 24px rgba(98,126,234,0.5); }
-.coin-btc  { background: linear-gradient(135deg, #f7931a, #d4720c); box-shadow: 0 0 24px rgba(247,147,26,0.5); }
-.coin-sol  { background: linear-gradient(135deg, #14f195, #9945ff); box-shadow: 0 0 24px rgba(20,241,149,0.4); }
-.coin-usdt { background: linear-gradient(135deg, #26a17b, #1a7a5e); box-shadow: 0 0 24px rgba(38,161,123,0.5); }
+.coin-eth  { background: linear-gradient(135deg, #627eea, #97a9f6); box-shadow: 0 0 24px rgba(98,126,234,0.5); }
+.coin-btc  { background: linear-gradient(135deg, #f7931a, #ffab41); box-shadow: 0 0 24px rgba(247,147,26,0.5); }
+.coin-sol  { background: linear-gradient(135deg, #14f195, #9945ff); box-shadow: 0 0 30px rgba(20,241,149,0.5); }
+.coin-usdt { background: linear-gradient(135deg, #26a17b, #53d1ab); box-shadow: 0 0 24px rgba(38,161,123,0.5); }
 
 .card-balance-label { font-size: 0.75rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; }
 .card-balance { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 1rem; }
@@ -211,8 +211,8 @@
     <div class="premium-subtitle">Your private non-custodial wallet on the Sepolia network.</div>
   </div>
   <div style="text-align: right;">
-    <div style="font-weight: bold; color: var(--primary); font-size: 1.2rem;">Ethereum (ETH) — Sepolia</div>
-    <div style="margin-top: 0.5rem; font-family: monospace; font-size: 0.8rem; color: var(--success);" id="livePrice">ETH Live: $2,305.87</div>
+    <div style="font-weight: bold; color: var(--primary); font-size: 1.2rem;" id="headerAssetName">Ethereum (ETH) — Sepolia</div>
+    <div style="margin-top: 0.5rem; font-family: monospace; font-size: 0.8rem; color: var(--success);" id="livePrice">ETH Live: $...</div>
   </div>
 </div>
 
@@ -410,10 +410,10 @@ let currentAsset = 'ETH';
 let marketChart = null;
 
 const ASSETS = [
-  { id: 'ETH', name: 'Ethereum', coingecko: 'ethereum' },
-  { id: 'BTC', name: 'Bitcoin',  coingecko: 'bitcoin'  },
-  { id: 'SOL', name: 'Solana',   coingecko: 'solana'   },
-  { id: 'USDT',name: 'Tether',   coingecko: 'tether'   }
+  { id: 'ETH', name: 'Ethereum', coingecko: 'ethereum', symbol: 'Ξ' },
+  { id: 'BTC', name: 'Bitcoin',  coingecko: 'bitcoin',  symbol: '₿' },
+  { id: 'SOL', name: 'Solana',   coingecko: 'solana',   symbol: '◎' },
+  { id: 'USDT',name: 'Tether',   coingecko: 'tether',   symbol: '₮' }
 ];
 let currentAssetIdx = 0;
 
@@ -440,12 +440,18 @@ function updateDots() {
     symbolEl.style.transform = 'scale(0) rotate(-180deg)';
     symbolEl.style.opacity = '0';
     setTimeout(() => {
-      symbolEl.textContent = coinSymbols[asset.id] || asset.id[0];
+      symbolEl.textContent = asset.symbol || asset.id[0];
       symbolEl.className = 'card-coin-symbol ' + (coinClasses[asset.id] || '');
       // Animate in
       symbolEl.style.transform = 'scale(1) rotate(0deg)';
       symbolEl.style.opacity = '1';
     }, 180);
+  }
+
+  // Update Header
+  const headerName = document.getElementById('headerAssetName');
+  if (headerName) {
+    headerName.textContent = `${asset.name} (${asset.id}) ${asset.id === 'ETH' ? '— Sepolia' : '— Mainnet'}`;
   }
 
   // Update coin label inside card
@@ -460,7 +466,7 @@ function updateDots() {
   if (asset.id === 'ETH') {
     loadWallet(); // real on-chain balance
   } else {
-    const mockBal = { BTC: '0.0000 BTC', SOL: '0.0000 SOL', USDT: '0.0000 USDT' };
+    const mockBal = { BTC: '0.0452 BTC', SOL: '12.50 SOL', USDT: '1,200.00 USDT' };
     if (balEl) balEl.textContent = mockBal[asset.id] || '0.0000 ' + asset.id;
   }
 }
@@ -799,9 +805,10 @@ async function loadChart(assetObj) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
       labels.push(`${d.getMonth()+1}/${d.getDate()}`);
-      // Random walk +- 5%
-      const jitter = base * (1 + (Math.random() * 0.1 - 0.05));
-      dataPoints.push(assetObj.id === 'USDT' ? 1.00 + (Math.random()*0.002 - 0.001) : jitter);
+      // Random walk +- 5% (USDT is flatter +- 0.2%)
+      const jitterAmount = assetObj.id === 'USDT' ? 0.002 : 0.1;
+      const jitter = base * (1 + (Math.random() * jitterAmount - (jitterAmount/2)));
+      dataPoints.push(jitter);
     }
   }
 
