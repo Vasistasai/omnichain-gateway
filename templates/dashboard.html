@@ -620,26 +620,59 @@ async function calculateNetworkFee() {
 
   if (currentAsset === 'ETH') {
     if (!ethers.isAddress(receiver)) {
-      estimateBox.classList.add('hidden');
-      return;
-    }
-    try {
-      const feeData = await publicProvider.getFeeData();
-      const gasCostEth = parseFloat(ethers.formatEther(21000n * feeData.gasPrice));
+async function calculateNetworkFee() {
+  const amountStr = document.getElementById('amount').value;
+  const receiver = document.getElementById('receiver').value.trim();
+  const amount = parseFloat(amountStr) || 0;
+  const gasValue = document.getElementById('gasValue');
+  const totalCost = document.getElementById('totalCost');
+  const estimateBox = document.getElementById('estimateBox');
+  const sendBtn = document.getElementById('sendBtn');
+  const balance = parseFloat(walletBalance.textContent) || 0;
+
+  if (amount <= 0 || !receiver) {
+    if (sendBtn) sendBtn.disabled = true;
+    if (estimateBox) estimateBox.classList.add('hidden');
+    return;
+  }
+
+  try {
+    let gasCostEth = 0.000021; // Default fallback
+    if (currentAsset === 'ETH') {
+      try {
+        const feeData = await publicProvider.getFeeData();
+        gasCostEth = parseFloat(ethers.formatEther(21000n * (feeData.gasPrice || 2000000000n)));
+      } catch(e) { console.warn("Gas fetch failed, using fallback"); }
+      
       gasValue.textContent = gasCostEth.toFixed(6) + ' ETH';
-      totalCost.textContent = (amount + gasCostEth).toFixed(6) + ' ETH';
-      estimateBox.classList.remove('hidden');
-    } catch(e) { console.error(e); }
-  } else {
-    // Simulate network fees for other chains
-    let mockFee = 0;
-    if (currentAsset === 'BTC') mockFee = 0.00005;
-    if (currentAsset === 'SOL') mockFee = 0.000005;
-    if (currentAsset === 'USDT') mockFee = 1.50; // $1.50 TRC20/ERC20 sim fee
-    
-    gasValue.textContent = mockFee + ' ' + currentAsset;
-    totalCost.textContent = (amount + mockFee).toFixed(6) + ' ' + currentAsset;
-    estimateBox.classList.remove('hidden');
+      const total = amount + gasCostEth;
+      totalCost.textContent = total.toFixed(6) + ' ETH';
+      
+      if (total > balance) {
+        if (sendBtn) {
+          sendBtn.disabled = true;
+          sendBtn.title = "Insufficient balance for amount + gas";
+        }
+      } else {
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.title = "";
+        }
+      }
+    } else {
+      let mockFee = 0;
+      if (currentAsset === 'BTC') mockFee = 0.00005;
+      if (currentAsset === 'SOL') mockFee = 0.000005;
+      if (currentAsset === 'USDT') mockFee = 1.50;
+      
+      gasValue.textContent = mockFee + ' ' + currentAsset;
+      totalCost.textContent = (amount + mockFee).toFixed(6) + ' ' + currentAsset;
+      if (sendBtn) sendBtn.disabled = false;
+    }
+    if (estimateBox) estimateBox.classList.remove('hidden');
+  } catch(e) { 
+    console.error(e);
+    if (sendBtn) sendBtn.disabled = false; 
   }
 }
 
