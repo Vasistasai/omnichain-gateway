@@ -27,16 +27,16 @@ def calculate_risk(amount_eth, receiver_address, user_id):
     risk_level = 'low'
     risk_reason = ''
 
-    # Lower thresholds for demo purposes
+    # Risk thresholds
     if receiver_address.lower().startswith('0x000'):
         risk_level = 'high'
         risk_reason = 'Transaction to restricted "Black Hole" address detected'
-    elif amount_eth >= 0.005:
+    elif amount_eth >= 0.1:
         risk_level = 'high'
-        risk_reason = f'Large transfer: {amount_eth} ETH exceeds security threshold'
-    elif amount_eth >= 0.001:
+        risk_reason = f'Large transfer: {amount_eth:.4f} ETH exceeds security threshold'
+    elif amount_eth >= 0.03:
         risk_level = 'medium'
-        risk_reason = f'Moderate transfer amount: {amount_eth} ETH'
+        risk_reason = f'Moderate transfer amount: {amount_eth:.4f} ETH'
     
     conn = get_db_connection()
     repeated = conn.execute(
