@@ -282,14 +282,16 @@ def send_mock_tx():
     import uuid
     tx_hash = f"mock_{asset.lower()}_" + uuid.uuid4().hex
     
+    risk_level, risk_reason = calculate_risk(float(amount), receiver, session['user_id'])
+    
     conn = get_db_connection()
     conn.execute('''INSERT INTO transactions 
-                    (user_id, tx_hash, amount_eth, sender_address, receiver_address, status, currency)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                 (session['user_id'], tx_hash, float(amount), sender, receiver, 'confirmed', asset))
+                    (user_id, tx_hash, amount_eth, sender_address, receiver_address, status, currency, risk_level, risk_reason)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                 (session['user_id'], tx_hash, float(amount), sender, receiver, 'confirmed', asset, risk_level, risk_reason))
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "tx_hash": tx_hash})
+    return jsonify({"success": True, "tx_hash": tx_hash, "risk_level": risk_level})
 
 @app.route('/logout')
 def logout():

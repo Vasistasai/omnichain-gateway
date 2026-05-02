@@ -694,10 +694,7 @@ try {
 window.addEventListener('load', async () => {
   try {
     if (userAddress) {
-      // Set initial display
-      document.getElementById('displayAddr').textContent = userAddress.slice(0,6) + '...' + userAddress.slice(-4);
-      
-      // Attempt background load
+      // Attempt background load — UI already shows fallback values
       loadWallet();
       loadChart(ASSETS[0]);
     }
