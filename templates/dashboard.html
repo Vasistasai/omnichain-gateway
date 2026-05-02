@@ -636,30 +636,14 @@ async function loadWallet() {
 // ── OmniChain Network Fee Simulator ────────────────────────────────────
 async function calculateNetworkFee() {
   const amountStr = document.getElementById('amount').value;
-  const receiver = document.getElementById('receiver').value;
-  const estimateBox = document.getElementById('gasEstimate');
-  const gasValue = document.getElementById('gasValue');
-  const totalCost = document.getElementById('totalCost');
-
-  if (!amountStr || !receiver) {
-    estimateBox.classList.add('hidden');
-    return;
-  }
-
-  const amount = parseFloat(amountStr);
-  if (isNaN(amount) || amount <= 0) return;
-
-  if (currentAsset === 'ETH') {
-    if (!ethers.isAddress(receiver)) {
-async function calculateNetworkFee() {
-  const amountStr = document.getElementById('amount').value;
   const receiver = document.getElementById('receiver').value.trim();
   const amount = parseFloat(amountStr) || 0;
   const gasValue = document.getElementById('gasValue');
   const totalCost = document.getElementById('totalCost');
-  const estimateBox = document.getElementById('estimateBox');
+  const estimateBox = document.getElementById('gasEstimate');
   const sendBtn = document.getElementById('sendBtn');
-  const balance = parseFloat(walletBalance.textContent) || 0;
+  const balText = document.getElementById('walletBalance').textContent;
+  const balance = parseFloat(balText) || 0;
 
   if (amount <= 0 || !receiver) {
     if (sendBtn) sendBtn.disabled = true;
@@ -668,41 +652,31 @@ async function calculateNetworkFee() {
   }
 
   try {
-    let gasCostEth = 0.000021; // Default fallback
     if (currentAsset === 'ETH') {
+      let gasCostEth = 0.000021;
       try {
         const feeData = await publicProvider.getFeeData();
         gasCostEth = parseFloat(ethers.formatEther(21000n * (feeData.gasPrice || 2000000000n)));
-      } catch(e) { console.warn("Gas fetch failed, using fallback"); }
+      } catch(e) { /* use fallback */ }
       
-      gasValue.textContent = gasCostEth.toFixed(6) + ' ETH';
+      if (gasValue) gasValue.textContent = gasCostEth.toFixed(6) + ' ETH';
       const total = amount + gasCostEth;
-      totalCost.textContent = total.toFixed(6) + ' ETH';
-      
-      if (total > balance) {
-        if (sendBtn) {
-          sendBtn.disabled = true;
-          sendBtn.title = "Insufficient balance for amount + gas";
-        }
-      } else {
-        if (sendBtn) {
-          sendBtn.disabled = false;
-          sendBtn.title = "";
-        }
+      if (totalCost) totalCost.textContent = total.toFixed(6) + ' ETH';
+      if (estimateBox) estimateBox.classList.remove('hidden');
+
+      if (sendBtn) {
+        sendBtn.disabled = (total > balance);
+        sendBtn.title = (total > balance) ? "Insufficient balance for amount + gas" : "";
       }
     } else {
-      let mockFee = 0;
-      if (currentAsset === 'BTC') mockFee = 0.00005;
-      if (currentAsset === 'SOL') mockFee = 0.000005;
-      if (currentAsset === 'USDT') mockFee = 1.50;
-      
-      gasValue.textContent = mockFee + ' ' + currentAsset;
-      totalCost.textContent = (amount + mockFee).toFixed(6) + ' ' + currentAsset;
-      if (sendBtn) sendBtn.disabled = false;
+      const mockFees = { BTC: 0.00005, SOL: 0.000005, USDT: 1.50 };
+      const mockFee = mockFees[currentAsset] || 0;
+      if (gasValue) gasValue.textContent = mockFee + ' ' + currentAsset;
+      if (totalCost) totalCost.textContent = (amount + mockFee).toFixed(6) + ' ' + currentAsset;
+      if (estimateBox) estimateBox.classList.remove('hidden');
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.title = ""; }
     }
-    if (estimateBox) estimateBox.classList.remove('hidden');
   } catch(e) { 
-    console.error(e);
     if (sendBtn) sendBtn.disabled = false; 
   }
 }
