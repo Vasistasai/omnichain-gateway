@@ -409,6 +409,7 @@ const isExternal = externalAddress.length > 0;
 let currentAsset = 'ETH'; 
 let marketChart = null;
 let isSwitching = false; 
+let fetchController = null; // To cancel stale network requests
 
 const ASSETS = [
   { id: 'ETH', name: 'Ethereum', coingecko: 'ethereum', symbol: 'Ξ' },
@@ -450,6 +451,10 @@ async function prevAsset() {
 }
 
 async function performAssetSwitch() {
+  // Cancel any pending chart fetches
+  if (fetchController) fetchController.abort();
+  fetchController = new AbortController();
+
   isSwitching = true;
   const asset = ASSETS[currentAssetIdx];
   currentAsset = asset.id;
@@ -768,6 +773,9 @@ document.getElementById('sendEthForm')?.addEventListener('submit', async (e) => 
 
 // ── 4. Live Crypto Chart (CoinGecko with Demo Fallback) ────────────────
 async function loadChart(assetObj) {
+  const signal = fetchController ? fetchController.signal : null;
+  const targetAssetId = assetObj.id;
+
   const ctx = document.getElementById('marketChart').getContext('2d');
   
   // Clean up old instance immediately
@@ -792,8 +800,8 @@ async function loadChart(assetObj) {
   try {
     const cgId = assetObj.coingecko;
     const [chartRes, priceRes] = await Promise.all([
-      fetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=7&precision=2`),
-      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`)
+      fetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=7&precision=2`, { signal }),
+      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`, { signal })
     ]);
 
     if (!chartRes.ok) throw new Error('Rate limited');
@@ -828,6 +836,9 @@ async function loadChart(assetObj) {
       dataPoints.push(jitter);
     }
   }
+
+  // Final safety check: If user switched while we were waiting for demo data/API
+  if (currentAsset !== targetAssetId) return;
 
   document.getElementById('livePrice').textContent = `${assetObj.id} Live: ${livePriceStr}`;
 
